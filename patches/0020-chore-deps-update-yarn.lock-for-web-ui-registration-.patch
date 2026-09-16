@@ -1,0 +1,55 @@
+From 30d9d4d5d96dbf59a3458c6d4d2d8e3dac0f5f22 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:32:10 +0700
+Subject: [PATCH 20/25] chore(deps): update yarn.lock for web-ui-registration
+ dependencies
+
+---
+ yarn.lock | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/yarn.lock b/yarn.lock
+index fcc7cb6..0b46966 100644
+--- a/yarn.lock
++++ b/yarn.lock
+@@ -7601,7 +7601,7 @@ __metadata:
+   languageName: node
+   linkType: hard
+ 
+-"@radix-ui/react-separator@npm:^1.1.15":
++"@radix-ui/react-separator@npm:^1.1.15, @radix-ui/react-separator@npm:^1.1.7":
+   version: 1.1.15
+   resolution: "@radix-ui/react-separator@npm:1.1.15"
+   dependencies:
+@@ -12214,6 +12214,8 @@ __metadata:
+   version: 0.0.0-use.local
+   resolution: "@rocket.chat/web-ui-registration@workspace:packages/web-ui-registration"
+   dependencies:
++    "@radix-ui/react-label": "npm:^2.1.15"
++    "@radix-ui/react-separator": "npm:^1.1.7"
+     "@rocket.chat/core-typings": "workspace:~"
+     "@rocket.chat/css-in-js": "npm:^0.33.1"
+     "@rocket.chat/emitter": "workspace:~"
+@@ -12236,15 +12238,19 @@ __metadata:
+     "@testing-library/react": "npm:~16.3.2"
+     "@types/react": "npm:~19.2.18"
+     "@types/react-dom": "npm:~19.2.4"
++    class-variance-authority: "npm:^0.7.1"
++    clsx: "npm:^2.1.1"
+     dompurify: "npm:~3.4.13"
+     eslint: "npm:~9.39.5"
+     i18next: "npm:~23.4.9"
++    lucide-react: "npm:^1.46.0"
+     react: "npm:~19.2.8"
+     react-dom: "npm:~19.2.8"
+     react-hook-form: "npm:~7.54.2"
+     react-i18next: "npm:~13.2.2"
+     react-virtuoso: "npm:~4.18.11"
+     storybook: "npm:^9.1.20"
++    tailwind-merge: "npm:^3.7.0"
+     typescript: "npm:~5.9.3"
+   peerDependencies:
+     "@rocket.chat/layout": "*"
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,136 @@
+From acd1e8d638aa21226cf0d81cee365a9270ece3e0 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 15:46:18 +0700
+Subject: [PATCH 23/25] fix(ui): apply Eprisi font-family to shadcn
+ Button/Input/Tabs primitives
+
+Tailwind's fontFamily.sans/heading were already configured in
+apps/meteor/tailwind.config.ts (GATE 3), but no component ever applied
+the resulting ep-font-sans utility class. Browsers don't inherit
+font-family into <button>/<input> by default, so the GATE 4 login
+screens' buttons and inputs silently rendered in the browser's native
+control font (computed font-family: Arial) instead of IBM Plex Sans.
+
+Adds ep-font-sans to both local shadcn Button copies (apps/meteor +
+web-ui-registration), both Input copies, and TabsTrigger. Verified via
+computed style against the live dev server.
+---
+ VERIFY.md                                           |  3 ---
+ apps/meteor/client/components/ui/button.tsx         |  2 +-
+ apps/meteor/client/components/ui/input.tsx          |  2 +-
+ apps/meteor/client/components/ui/tabs.tsx           |  2 +-
+ .../src/components/ui/button.tsx                    |  2 +-
+ .../web-ui-registration/src/components/ui/input.tsx |  2 +-
+ scripts/visual-diff.mjs                             | 13 +++++--------
+ 7 files changed, 10 insertions(+), 16 deletions(-)
+
+diff --git a/VERIFY.md b/VERIFY.md
+index 3f443e2..6f5958e 100644
+--- a/VERIFY.md
++++ b/VERIFY.md
+@@ -25,9 +25,6 @@ interaction flows, and subjective "does this feel right" judgment.
+   "EPRISI Chat" wordmark — content/asset gap, not a CSS bug.
+ - Login aside has no hero photo/marketing copy — no settings slot exists for
+   that in Rocket.Chat today.
+-- Shadcn Button/Input render in the browser's default control font instead of
+-  IBM Plex Sans (computed `font-family: Arial`) — traced to a missing
+-  Tailwind font utility from GATE 3, open for a fix decision.
+ - Sidebar channel rows show a colored avatar tile instead of the mockup's
+   plain "#" hash icon — toggleable via the existing `sidebarDisplayAvatar`
+   setting, not a defect.
+diff --git a/apps/meteor/client/components/ui/button.tsx b/apps/meteor/client/components/ui/button.tsx
+index 3070a95..eb975e3 100644
+--- a/apps/meteor/client/components/ui/button.tsx
++++ b/apps/meteor/client/components/ui/button.tsx
+@@ -6,7 +6,7 @@ import { forwardRef } from 'react';
+ import { cn } from '../../lib/utils';
+ 
+ const buttonVariants = cva(
+-	'ep-inline-flex ep-items-center ep-justify-center ep-gap-2 ep-whitespace-nowrap ep-rounded-md ep-text-p1 ep-font-medium ep-transition-colors focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 focus-visible:ep-ring-offset-2 disabled:ep-pointer-events-none disabled:ep-opacity-50',
++	'ep-inline-flex ep-items-center ep-justify-center ep-gap-2 ep-whitespace-nowrap ep-rounded-md ep-font-sans ep-text-p1 ep-font-medium ep-transition-colors focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 focus-visible:ep-ring-offset-2 disabled:ep-pointer-events-none disabled:ep-opacity-50',
+ 	{
+ 		variants: {
+ 			variant: {
+diff --git a/apps/meteor/client/components/ui/input.tsx b/apps/meteor/client/components/ui/input.tsx
+index 55f3e22..0dce058 100644
+--- a/apps/meteor/client/components/ui/input.tsx
++++ b/apps/meteor/client/components/ui/input.tsx
+@@ -9,7 +9,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, type
+ 	<input
+ 		type={type}
+ 		className={cn(
+-			'ep-flex ep-h-10 ep-w-full ep-rounded-sm ep-border ep-border-transparent ep-bg-surface-tint ep-px-3 ep-py-2 ep-text-p1 ep-text-font-default placeholder:ep-text-font-secondary focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-cursor-not-allowed disabled:ep-opacity-50',
++			'ep-flex ep-h-10 ep-w-full ep-rounded-sm ep-border ep-border-transparent ep-bg-surface-tint ep-px-3 ep-py-2 ep-font-sans ep-text-p1 ep-text-font-default placeholder:ep-text-font-secondary focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-cursor-not-allowed disabled:ep-opacity-50',
+ 			className,
+ 		)}
+ 		ref={ref}
+diff --git a/apps/meteor/client/components/ui/tabs.tsx b/apps/meteor/client/components/ui/tabs.tsx
+index 3d59d0d..b2474a9 100644
+--- a/apps/meteor/client/components/ui/tabs.tsx
++++ b/apps/meteor/client/components/ui/tabs.tsx
+@@ -25,7 +25,7 @@ export const TabsTrigger = forwardRef<ElementRef<typeof TabsPrimitive.Trigger>,
+ 		<TabsPrimitive.Trigger
+ 			ref={ref}
+ 			className={cn(
+-				'ep-inline-flex ep-items-center ep-justify-center ep-whitespace-nowrap ep-rounded-sm ep-px-3 ep-py-1.5 ep-text-p1 ep-font-medium ep-ring-offset-white ep-transition-all focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-pointer-events-none disabled:ep-opacity-50 data-[state=active]:ep-bg-surface-neutral data-[state=active]:ep-text-font-default data-[state=active]:ep-shadow-sm',
++				'ep-inline-flex ep-items-center ep-justify-center ep-whitespace-nowrap ep-rounded-sm ep-px-3 ep-py-1.5 ep-font-sans ep-text-p1 ep-font-medium ep-ring-offset-white ep-transition-all focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-pointer-events-none disabled:ep-opacity-50 data-[state=active]:ep-bg-surface-neutral data-[state=active]:ep-text-font-default data-[state=active]:ep-shadow-sm',
+ 				className,
+ 			)}
+ 			{...props}
+diff --git a/packages/web-ui-registration/src/components/ui/button.tsx b/packages/web-ui-registration/src/components/ui/button.tsx
+index 686dc45..6d5db3c 100644
+--- a/packages/web-ui-registration/src/components/ui/button.tsx
++++ b/packages/web-ui-registration/src/components/ui/button.tsx
+@@ -5,7 +5,7 @@ import { forwardRef } from 'react';
+ import { cn } from '../../lib/utils';
+ 
+ const buttonVariants = cva(
+-	'ep-inline-flex ep-items-center ep-justify-center ep-gap-2 ep-whitespace-nowrap ep-rounded-md ep-text-p1 ep-font-medium ep-transition-colors focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 focus-visible:ep-ring-offset-2 disabled:ep-pointer-events-none disabled:ep-opacity-50',
++	'ep-inline-flex ep-items-center ep-justify-center ep-gap-2 ep-whitespace-nowrap ep-rounded-md ep-font-sans ep-text-p1 ep-font-medium ep-transition-colors focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 focus-visible:ep-ring-offset-2 disabled:ep-pointer-events-none disabled:ep-opacity-50',
+ 	{
+ 		variants: {
+ 			variant: {
+diff --git a/packages/web-ui-registration/src/components/ui/input.tsx b/packages/web-ui-registration/src/components/ui/input.tsx
+index 01a50cc..8752714 100644
+--- a/packages/web-ui-registration/src/components/ui/input.tsx
++++ b/packages/web-ui-registration/src/components/ui/input.tsx
+@@ -9,7 +9,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, type
+ 	<input
+ 		type={type}
+ 		className={cn(
+-			'ep-flex ep-h-11 ep-w-full ep-rounded-sm ep-border ep-border-transparent ep-bg-surface-tint ep-px-3 ep-py-2 ep-text-p1 ep-text-font-default placeholder:ep-text-font-secondary focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-cursor-not-allowed disabled:ep-opacity-50',
++			'ep-flex ep-h-11 ep-w-full ep-rounded-sm ep-border ep-border-transparent ep-bg-surface-tint ep-px-3 ep-py-2 ep-font-sans ep-text-p1 ep-text-font-default placeholder:ep-text-font-secondary focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-cursor-not-allowed disabled:ep-opacity-50',
+ 			invalid && 'ep-border-red-500 focus-visible:ep-ring-red-500',
+ 			className,
+ 		)}
+diff --git a/scripts/visual-diff.mjs b/scripts/visual-diff.mjs
+index 2f493b6..d5e935c 100644
+--- a/scripts/visual-diff.mjs
++++ b/scripts/visual-diff.mjs
+@@ -162,18 +162,15 @@ const HAND_REVIEWED_DIFFERENCES = [
+ 	},
+ 	{
+ 		id: 'shadcn-form-controls-missing-font-family',
+-		severity: 'open',
++		severity: 'fixed',
+ 		screens: ['login-desktop', 'login-mobile'],
+ 		category: 'font-family',
+ 		summary:
+-			'The GATE 4 shadcn Button (and likely Input/other form controls) renders in the browser default control font (computed font-family: "Arial") instead of IBM Plex Sans.',
++			'The GATE 4 shadcn Button/Input/Tabs-trigger rendered in the browser default control font (computed font-family: "Arial") instead of IBM Plex Sans.',
+ 		rootCause:
+-			'eprisi-tailwind.css never defines a font-family utility mapped to --rcx-font-family-sans/--ep-font-family-heading, and button.tsx only applies ep-text-p1/ep-font-medium (size/weight), never a font-family class. Browsers do not inherit font-family into <button> by default, so with no explicit class it falls back to the OS UI control font.',
+-		suggestedFix:
+-			'Add a `font-sans`/`ep-font-sans` Tailwind utility in eprisi-tailwind.css mapped to var(--rcx-font-family-sans), then apply it in both local shadcn Button implementations (apps/meteor/client/components/ui/button.tsx and packages/web-ui-registration/src/components/ui/button.tsx) and audit Input for the same gap.',
+-		deferred: true,
+-		deferralReason:
+-			'Root cause traces to GATE 3 (Tailwind theme setup), and a full fix touches component primitives shared across two separate packages — larger than GATE 6 verification scope. Reported for a scoping decision rather than fixed inline.',
++			"Tailwind's fontFamily.sans WAS already configured in apps/meteor/tailwind.config.ts (so the `ep-font-sans` utility existed), but no component ever applied the class — button.tsx/input.tsx/tabs.tsx only used ep-text-p1/ep-font-medium (size/weight). Browsers do not inherit font-family into <button>/<input> by default, so with no explicit class they fell back to the OS UI control font.",
++		fix: 'Added `ep-font-sans` to the base class string in both local shadcn Button copies (apps/meteor + packages/web-ui-registration), both Input copies, and TabsTrigger. Verified via computed style: button/input font-family now resolves to the full "IBM Plex Sans", ... stack.',
++		note: 'Rebuilding packages/web-ui-registration alone was not enough to see the fix live — Meteor does not watch node_modules for changes, so the dev server needed a full restart to pick up the rebuilt workspace package dist.',
+ 	},
+ 	{
+ 		id: 'login-branding-not-customized',
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,39 @@
+From 0f9bc761a7efd3b2a7e81303019f55333538abe9 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:30:39 +0700
+Subject: [PATCH 10/25] feat(login): rebuild LoginTerms without
+ @rocket.chat/layout (L3a)
+
+HorizontalWizardLayoutCaption -> plain div. Same useSetting call
+(Layout_Login_Terms), same DOMPurify sanitization, same i18n fallback
+(Layout_Login_Terms_Content).
+---
+ .../web-ui-registration/src/components/LoginTerms.tsx     | 8 +-------
+ 1 file changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/packages/web-ui-registration/src/components/LoginTerms.tsx b/packages/web-ui-registration/src/components/LoginTerms.tsx
+index 875ce26..b3efe2d 100644
+--- a/packages/web-ui-registration/src/components/LoginTerms.tsx
++++ b/packages/web-ui-registration/src/components/LoginTerms.tsx
+@@ -1,5 +1,3 @@
+-import { Box } from '@rocket.chat/fuselage';
+-import { HorizontalWizardLayoutCaption } from '@rocket.chat/layout';
+ import { useSetting } from '@rocket.chat/ui-contexts';
+ import DOMPurify from 'dompurify';
+ import { useMemo } from 'react';
+@@ -14,11 +12,7 @@ export const LoginTerms = () => {
+ 		[loginTerms, t],
+ 	);
+ 
+-	return (
+-		<HorizontalWizardLayoutCaption>
+-			<Box color='default' withRichContent dangerouslySetInnerHTML={dangerousTerms} />
+-		</HorizontalWizardLayoutCaption>
+-	);
++	return <div className='ep-text-c1 ep-text-font-secondary [&_a]:ep-underline [&_a]:ep-underline-offset-2' dangerouslySetInnerHTML={dangerousTerms} />;
+ };
+ 
+ export default LoginTerms;
+-- 
+2.50.1 (Apple Git-155)
+

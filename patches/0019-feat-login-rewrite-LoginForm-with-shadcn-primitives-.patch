@@ -1,0 +1,262 @@
+From 56984507015ac22f707228f42b39ca03cb4a8d51 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:31:44 +0700
+Subject: [PATCH 19/25] feat(login): rewrite LoginForm with shadcn primitives
+ (L3a)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+@rocket.chat/layout Form*/ActionLink/FieldLink + Fuselage Field*/
+PasswordInput/Callout -> local ui/input.tsx, ui/label.tsx,
+ui/password-input.tsx, ui/button.tsx, FormCallout. register() field
+names, LOGIN_SUBMIT_ERRORS mapping, useLoginWithPassword mutation and its
+onError branches, EmailConfirmationForm handoff, and all aria-*/
+aria-describedby wiring byte-identical to before.
+
+Deviation: submit button shows only a disabled state during
+loginMutation.isPending, not a loading spinner (Fuselage Button's
+ prop) — functionally equivalent (blocks double-submit) but
+visually simpler; flagged for GATE 6 visual QA.
+---
+ .../web-ui-registration/src/LoginForm.tsx     | 174 ++++++++----------
+ 1 file changed, 81 insertions(+), 93 deletions(-)
+
+diff --git a/packages/web-ui-registration/src/LoginForm.tsx b/packages/web-ui-registration/src/LoginForm.tsx
+index c0cfb9e..93a6855 100644
+--- a/packages/web-ui-registration/src/LoginForm.tsx
++++ b/packages/web-ui-registration/src/LoginForm.tsx
+@@ -1,17 +1,3 @@
+-import {
+-	FieldGroup,
+-	TextInput,
+-	Field,
+-	FieldLabel,
+-	FieldRow,
+-	FieldError,
+-	FieldLink,
+-	PasswordInput,
+-	ButtonGroup,
+-	Button,
+-	Callout,
+-} from '@rocket.chat/fuselage';
+-import { Form, FormContainer, FormFooter, FormHeader, FormTitle, ActionLink } from '@rocket.chat/layout';
+ import { useDocumentTitle } from '@rocket.chat/ui-client';
+ import { useLoginWithPassword, useSetting } from '@rocket.chat/ui-contexts';
+ import { useMutation } from '@tanstack/react-query';
+@@ -21,6 +7,11 @@ import { Trans, useTranslation } from 'react-i18next';
+ 
+ import EmailConfirmationForm from './EmailConfirmationForm';
+ import LoginServices from './LoginServices';
++import { FormCallout } from './components/FormCallout';
++import { Button } from './components/ui/button';
++import { Input } from './components/ui/input';
++import { Label } from './components/ui/label';
++import { PasswordInput } from './components/ui/password-input';
+ import type { DispatchLoginRouter } from './hooks/useLoginRouter';
+ 
+ const LOGIN_SUBMIT_ERRORS = {
+@@ -120,7 +111,7 @@ export const LoginForm = ({ setLoginRoute }: LoginFormProps) => {
+ 
+ 	const usernameId = useId();
+ 	const passwordId = useId();
+-	const loginFormRef = useRef<HTMLElement>(null);
++	const loginFormRef = useRef<HTMLFormElement>(null);
+ 
+ 	useEffect(() => {
+ 		if (loginFormRef.current) {
+@@ -132,9 +123,9 @@ export const LoginForm = ({ setLoginRoute }: LoginFormProps) => {
+ 		if (error in LOGIN_SUBMIT_ERRORS) {
+ 			const { type, i18n } = LOGIN_SUBMIT_ERRORS[error as Exclude<LoginErrors, string>];
+ 			return (
+-				<Callout id={`${usernameId}-error`} aria-live='assertive' type={type}>
++				<FormCallout id={`${usernameId}-error`} aria-live='assertive' type={type}>
+ 					{t(i18n)}
+-				</Callout>
++				</FormCallout>
+ 			);
+ 		}
+ 
+@@ -144,9 +135,9 @@ export const LoginForm = ({ setLoginRoute }: LoginFormProps) => {
+ 
+ 		if (message) {
+ 			return (
+-				<Callout id={`${usernameId}-error`} aria-live='assertive' type='danger'>
++				<FormCallout id={`${usernameId}-error`} aria-live='assertive' type='danger'>
+ 					{message}
+-				</Callout>
++				</FormCallout>
+ 			);
+ 		}
+ 		return null;
+@@ -159,96 +150,93 @@ export const LoginForm = ({ setLoginRoute }: LoginFormProps) => {
+ 	const hasAuthError = errors.password?.type === 'user-not-found';
+ 
+ 	return (
+-		<Form
++		<form
+ 			tabIndex={-1}
+ 			ref={loginFormRef}
+ 			aria-labelledby={formLabelId}
+ 			aria-describedby='welcomeTitle'
+ 			onSubmit={handleSubmit(async (data) => loginMutation.mutate(data))}
++			className='ep-flex ep-flex-col ep-gap-6'
+ 		>
+-			<FormHeader>
+-				<FormTitle id={formLabelId}>{t('registration.component.login')}</FormTitle>
+-			</FormHeader>
++			<h1 id={formLabelId} className='ep-font-heading ep-text-h1 ep-text-font-default'>
++				{t('registration.component.login')}
++			</h1>
+ 			{showFormLogin && (
+ 				<>
+-					<FormContainer>
+-						<FieldGroup disabled={loginMutation.isPending}>
+-							<Field>
+-								<FieldLabel required htmlFor={usernameId}>
+-									{t('registration.component.form.emailOrUsername')}
+-								</FieldLabel>
+-								<FieldRow>
+-									<TextInput
+-										{...register('usernameOrEmail', {
+-											required: t('Required_field', { field: t('registration.component.form.emailOrUsername') }),
+-										})}
+-										placeholder={usernameOrEmailPlaceholder || t('registration.component.form.emailPlaceholder')}
+-										error={errors.usernameOrEmail?.message || (hasAuthError ? errors.password?.message : undefined)}
+-										aria-invalid={errors.usernameOrEmail || hasAuthError || errorOnSubmit ? 'true' : 'false'}
+-										aria-describedby={`${usernameId}-error`}
+-										id={usernameId}
+-									/>
+-								</FieldRow>
+-								{errors.usernameOrEmail && (
+-									<FieldError role='alert' id={`${usernameId}-error`}>
+-										{errors.usernameOrEmail.message}
+-									</FieldError>
+-								)}
+-							</Field>
+-							<Field>
+-								<FieldLabel required htmlFor={passwordId}>
+-									{t('registration.component.form.password')}
+-								</FieldLabel>
+-								<FieldRow>
+-									<PasswordInput
+-										{...register('password', {
+-											required: t('Required_field', { field: t('registration.component.form.password') }),
+-										})}
+-										placeholder={passwordPlaceholder}
+-										error={errors.password?.message}
+-										aria-invalid={errors.password || errorOnSubmit ? 'true' : 'false'}
+-										aria-describedby={`${passwordId}-error`}
+-										id={passwordId}
+-									/>
+-								</FieldRow>
+-								{errors.password && (
+-									<FieldError role='alert' id={`${passwordId}-error`}>
+-										{errors.password.message}
+-									</FieldError>
+-								)}
++					<fieldset disabled={loginMutation.isPending} className='ep-flex ep-flex-col ep-gap-4 ep-border-0 ep-p-0'>
++						<div className='ep-flex ep-flex-col ep-gap-2'>
++							<Label htmlFor={usernameId}>{t('registration.component.form.emailOrUsername')}</Label>
++							<Input
++								{...register('usernameOrEmail', {
++									required: t('Required_field', { field: t('registration.component.form.emailOrUsername') }),
++								})}
++								placeholder={usernameOrEmailPlaceholder || t('registration.component.form.emailPlaceholder')}
++								invalid={!!(errors.usernameOrEmail || hasAuthError)}
++								aria-invalid={errors.usernameOrEmail || hasAuthError || errorOnSubmit ? 'true' : 'false'}
++								aria-describedby={`${usernameId}-error`}
++								id={usernameId}
++							/>
++							{errors.usernameOrEmail && (
++								<p role='alert' id={`${usernameId}-error`} className='ep-text-c1 ep-text-red-600'>
++									{errors.usernameOrEmail.message}
++								</p>
++							)}
++						</div>
++						<div className='ep-flex ep-flex-col ep-gap-2'>
++							<div className='ep-flex ep-items-center ep-justify-between'>
++								<Label htmlFor={passwordId}>{t('registration.component.form.password')}</Label>
+ 								{isResetPasswordAllowed && (
+-									<FieldRow justifyContent='end'>
+-										<FieldLink
+-											href='#'
+-											onClick={(e): void => {
+-												e.preventDefault();
+-												setLoginRoute('reset-password');
+-											}}
+-										>
+-											<Trans i18nKey='registration.page.login.forgot'>Forgot your password?</Trans>
+-										</FieldLink>
+-									</FieldRow>
++									<button
++										type='button'
++										className='ep-text-c1 ep-font-medium ep-text-brand-600 hover:ep-underline'
++										onClick={(e): void => {
++											e.preventDefault();
++											setLoginRoute('reset-password');
++										}}
++									>
++										<Trans i18nKey='registration.page.login.forgot'>Forgot your password?</Trans>
++									</button>
+ 								)}
+-							</Field>
+-						</FieldGroup>
+-						{errorOnSubmit && <FieldGroup disabled={loginMutation.isPending}>{renderErrorOnSubmit(errorOnSubmit)}</FieldGroup>}
+-					</FormContainer>
+-					<FormFooter>
+-						<ButtonGroup>
+-							<Button loading={loginMutation.isPending} type='submit' primary>
+-								{t('registration.component.login')}
+-							</Button>
+-						</ButtonGroup>
+-						<p>
++							</div>
++							<PasswordInput
++								{...register('password', {
++									required: t('Required_field', { field: t('registration.component.form.password') }),
++								})}
++								placeholder={passwordPlaceholder}
++								invalid={!!errors.password}
++								aria-invalid={errors.password || errorOnSubmit ? 'true' : 'false'}
++								aria-describedby={`${passwordId}-error`}
++								id={passwordId}
++							/>
++							{errors.password && (
++								<p role='alert' id={`${passwordId}-error`} className='ep-text-c1 ep-text-red-600'>
++									{errors.password.message}
++								</p>
++							)}
++						</div>
++					</fieldset>
++					{errorOnSubmit && <div className='ep-flex ep-flex-col ep-gap-2'>{renderErrorOnSubmit(errorOnSubmit)}</div>}
++					<div className='ep-flex ep-flex-col ep-gap-3'>
++						<Button size='lg' className='ep-w-full' disabled={loginMutation.isPending} type='submit'>
++							{t('registration.component.login')}
++						</Button>
++						<p className='ep-text-p1 ep-text-font-secondary'>
+ 							<Trans i18nKey='registration.page.login.register'>
+-								New here? <ActionLink onClick={(): void => setLoginRoute('register')}>Create an account</ActionLink>
++								New here?{' '}
++								<button
++									type='button'
++									className='ep-font-medium ep-text-brand-600 hover:ep-underline'
++									onClick={(): void => setLoginRoute('register')}
++								>
++									Create an account
++								</button>
+ 							</Trans>
+ 						</p>
+-					</FormFooter>
++					</div>
+ 				</>
+ 			)}
+ 			<LoginServices disabled={loginMutation.isPending} setError={setErrorOnSubmit} />
+-		</Form>
++		</form>
+ 	);
+ };
+ 
+-- 
+2.50.1 (Apple Git-155)
+

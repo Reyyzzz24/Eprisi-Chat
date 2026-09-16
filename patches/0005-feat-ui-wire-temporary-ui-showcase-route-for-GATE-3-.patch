@@ -1,0 +1,53 @@
+From c7680d9e4c0c07e4a3339adce2c41668b4aa72b0 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:17:50 +0700
+Subject: [PATCH 05/25] feat(ui): wire temporary /ui-showcase route for GATE 3
+ proof-of-compile
+
+Renders every shadcn component ported in this gate so a Tailwind/Meteor
+build issue surfaces here instead of silently on an unrelated screen.
+Route + __showcase.tsx removed in GATE 7.
+---
+ apps/meteor/client/startup/routes.tsx | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/apps/meteor/client/startup/routes.tsx b/apps/meteor/client/startup/routes.tsx
+index d09d2a6..38e1d4d 100644
+--- a/apps/meteor/client/startup/routes.tsx
++++ b/apps/meteor/client/startup/routes.tsx
+@@ -26,6 +26,8 @@ const OAuthErrorPage = lazy(() => import('../views/oauth/OAuthErrorPage'));
+ const NotFoundPage = lazy(() => import('../views/notFound/NotFoundPage'));
+ const CallHistoryPage = lazy(() => import('../views/mediaCallHistory/CallHistoryPage'));
+ const SearchPage = lazy(() => import('../views/search/SearchPage'));
++// GATE 3 proof-of-compile route — removed in GATE 7, see REDESIGN_PROMPT.md
++const UiShowcasePage = lazy(() => import('../components/ui/__showcase'));
+ 
+ declare module '@rocket.chat/ui-contexts' {
+ 	interface IRouterPaths {
+@@ -121,6 +123,10 @@ declare module '@rocket.chat/ui-contexts' {
+ 			pathname: '/search';
+ 			pattern: '/search';
+ 		};
++		'ui-showcase': {
++			pathname: '/ui-showcase';
++			pattern: '/ui-showcase';
++		};
+ 	}
+ }
+ 
+@@ -265,6 +271,12 @@ router.defineRoutes([
+ 			</MainLayout>,
+ 		),
+ 	},
++	{
++		// GATE 3 proof-of-compile route — removed in GATE 7, see REDESIGN_PROMPT.md
++		path: '/ui-showcase',
++		id: 'ui-showcase',
++		element: appLayout.wrap(<UiShowcasePage />),
++	},
+ 	{
+ 		path: '*',
+ 		id: 'not-found',
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,29 @@
+From c213318b6f8701a06c7ffa09a49e51f651cf7392 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 16:50:32 +0700
+Subject: [PATCH 24/25] feat(i18n): rebrand sidebar footer watermark to
+ "Powered by Eprisi Chat"
+
+Only the en locale key is touched (Powered_by_RocketChat); other
+locales still say Rocket.Chat and would need the same key translated
+if this fork ships those languages.
+---
+ packages/i18n/src/locales/en.i18n.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/packages/i18n/src/locales/en.i18n.json b/packages/i18n/src/locales/en.i18n.json
+index acb08f1..a24d217 100644
+--- a/packages/i18n/src/locales/en.i18n.json
++++ b/packages/i18n/src/locales/en.i18n.json
+@@ -4374,7 +4374,7 @@
+   "Post_as": "Post as",
+   "Post_to": "Post to",
+   "Post_to_Channel": "Post to Channel",
+-  "Powered_by_RocketChat": "Powered by Rocket.Chat",
++  "Powered_by_RocketChat": "Powered by Eprisi Chat",
+   "Preferences": "Preferences",
+   "Preferences_saved": "Preferences saved",
+   "Premium": "Premium",
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,131 @@
+From 0e7fcc978e60bba1ef06039bb5da74eeae10a2fa Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:30:56 +0700
+Subject: [PATCH 13/25] feat(login): rewrite HorizontalTemplate to match Eprisi
+ mockup (L3a)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Drops @rocket.chat/layout's HorizontalWizardLayout* (external npm package,
+not a workspace lib — the reason this file needed a rewrite rather than a
+patch, per REDESIGN_PROMPT.md). Two-panel layout: light form panel (left)
++ background-photo panel with gradient overlay (right), matching
+mockups/rocketchat/login.jpg.
+
+Contract preserved: useSetting('Layout_Login_Hide_Logo'),
+useAssetWithDarkModePath('logo'|'background') still called and rendered
+unconditionally of any hardcoded logo — admin-configured assets only.
+RegisterTitle/LoginPoweredBy/LoginTerms/LoginSwitchLanguageFooter all
+still rendered.
+
+Gap (not invented): mockup's right-panel headline 'Secure Real-time
+Collaboration' and its description paragraph have no backing i18n key or
+setting, so RegisterTitle keeps its real copy ('Welcome to {Site_Name}
+workspace') and the description paragraph is omitted rather than
+hardcoded. Decorative gear watermark reproduced as a generic inline SVG
+(not the Eprisi logo/wordmark).
+---
+ .../src/template/HorizontalTemplate.tsx       | 73 +++++++++++++------
+ 1 file changed, 50 insertions(+), 23 deletions(-)
+
+diff --git a/packages/web-ui-registration/src/template/HorizontalTemplate.tsx b/packages/web-ui-registration/src/template/HorizontalTemplate.tsx
+index 19d2fb8..2bc434f 100644
+--- a/packages/web-ui-registration/src/template/HorizontalTemplate.tsx
++++ b/packages/web-ui-registration/src/template/HorizontalTemplate.tsx
+@@ -1,11 +1,4 @@
+ import { Box } from '@rocket.chat/fuselage';
+-import {
+-	HorizontalWizardLayout,
+-	HorizontalWizardLayoutAside,
+-	HorizontalWizardLayoutContent,
+-	HorizontalWizardLayoutTitle,
+-	HorizontalWizardLayoutFooter,
+-} from '@rocket.chat/layout';
+ import { useSetting, useAssetWithDarkModePath } from '@rocket.chat/ui-contexts';
+ import type { ReactNode } from 'react';
+ 
+@@ -16,30 +9,64 @@ import { RegisterTitle } from '../components/RegisterTitle';
+ 
+ export type HorizontalTemplateProps = { children: ReactNode };
+ 
++// Decorative gear-in-circle watermark, bottom-left of the form panel — a
++// generic decoration (not the Eprisi wordmark/logo, which stays admin-
++// configured via useAssetWithDarkModePath below). Freehand SVG matching
++// mockups/rocketchat/watermark-gear.jpg; no brand identity encoded in it.
++const GearWatermark = () => (
++	<svg
++		aria-hidden
++		viewBox='0 0 100 100'
++		className='ep-pointer-events-none ep-absolute ep-bottom-[-15%] ep-left-[-15%] ep-h-64 ep-w-64 ep-text-brand-100 ep-opacity-60'
++	>
++		<circle cx='50' cy='50' r='46' fill='none' stroke='currentColor' strokeWidth='7' />
++		<g fill='currentColor'>
++			{Array.from({ length: 16 }, (_, i) => (
++				<rect key={i} x='47' y='2' width='6' height='10' rx='2' transform={`rotate(${(360 / 16) * i} 50 50)`} />
++			))}
++		</g>
++		<circle cx='50' cy='50' r='22' fill='none' stroke='currentColor' strokeWidth='6' />
++		<circle cx='50' cy='50' r='6' fill='currentColor' />
++		<line x1='50' y1='50' x2='50' y2='30' stroke='currentColor' strokeWidth='6' strokeLinecap='round' />
++		<line x1='50' y1='50' x2='66' y2='58' stroke='currentColor' strokeWidth='6' strokeLinecap='round' />
++	</svg>
++);
++
+ const HorizontalTemplate = ({ children }: HorizontalTemplateProps) => {
+ 	const hideLogo = useSetting('Layout_Login_Hide_Logo', false);
+ 	const customLogo = useAssetWithDarkModePath('logo');
+ 	const customBackground = useAssetWithDarkModePath('background');
+ 
+ 	return (
+-		<HorizontalWizardLayout
+-			background={customBackground}
+-			logo={!hideLogo && customLogo ? <Box is='img' maxHeight='x40' marginInline='neg-x8' src={customLogo} alt='Logo' /> : <></>}
+-		>
+-			<HorizontalWizardLayoutAside>
+-				<HorizontalWizardLayoutTitle>
+-					<RegisterTitle />
+-				</HorizontalWizardLayoutTitle>
+-				<LoginPoweredBy />
+-			</HorizontalWizardLayoutAside>
+-			<HorizontalWizardLayoutContent>
+-				{children}
+-				<HorizontalWizardLayoutFooter>
++		<div className='ep-flex ep-min-h-screen ep-w-full ep-font-sans'>
++			<div className='ep-relative ep-flex ep-w-full ep-flex-col ep-overflow-hidden ep-bg-surface-light ep-px-6 ep-py-8 sm:ep-px-16 sm:ep-py-10 lg:ep-w-1/2'>
++				{!hideLogo && customLogo && (
++					<Box is='img' maxHeight='x40' className='ep-relative ep-z-10 ep-self-start' src={customLogo} alt='Logo' />
++				)}
++
++				<div className='ep-relative ep-z-10 ep-flex ep-flex-1 ep-flex-col ep-justify-center ep-py-10'>
++					<div className='ep-mx-auto ep-w-full ep-max-w-[420px]'>{children}</div>
++				</div>
++
++				<div className='ep-relative ep-z-10 ep-mx-auto ep-flex ep-w-full ep-max-w-[420px] ep-flex-col ep-gap-2'>
+ 					<LoginTerms />
+ 					<LoginSwitchLanguageFooter />
+-				</HorizontalWizardLayoutFooter>
+-			</HorizontalWizardLayoutContent>
+-		</HorizontalWizardLayout>
++				</div>
++
++				<GearWatermark />
++			</div>
++
++			<div
++				className='ep-relative ep-hidden ep-w-1/2 ep-bg-surface-sidebar ep-bg-cover ep-bg-center lg:ep-block'
++				style={customBackground ? { backgroundImage: `url(${customBackground})` } : undefined}
++			>
++				<div className='ep-absolute ep-inset-0 ep-bg-gradient-to-t ep-from-surface-sidebar/90 ep-via-surface-sidebar/10 ep-to-transparent' />
++				<div className='ep-absolute ep-inset-x-0 ep-bottom-0 ep-flex ep-flex-col ep-gap-3 ep-p-12 ep-text-font-on-primary'>
++					<RegisterTitle />
++					<LoginPoweredBy />
++				</div>
++			</div>
++		</div>
+ 	);
+ };
+ 
+-- 
+2.50.1 (Apple Git-155)
+

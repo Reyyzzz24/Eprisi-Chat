@@ -1,0 +1,61 @@
+From a43cd992b5645a478951361fa4114412b8b2683e Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:30:39 +0700
+Subject: [PATCH 11/25] feat(login): rebuild LoginSwitchLanguageFooter with
+ shadcn Button (L3a)
+
+HorizontalWizardLayoutCaption + Fuselage Button -> local ui/button.tsx.
+Same language-suggestion logic, hooks, and Trans i18n key
+(registration.component.switchLanguage) untouched.
+---
+ .../src/components/LoginSwitchLanguageFooter.tsx       | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/packages/web-ui-registration/src/components/LoginSwitchLanguageFooter.tsx b/packages/web-ui-registration/src/components/LoginSwitchLanguageFooter.tsx
+index 1d72fb3..e107160 100644
+--- a/packages/web-ui-registration/src/components/LoginSwitchLanguageFooter.tsx
++++ b/packages/web-ui-registration/src/components/LoginSwitchLanguageFooter.tsx
+@@ -1,12 +1,12 @@
+-import { Button } from '@rocket.chat/fuselage';
+ import { useLocalStorage } from '@rocket.chat/fuselage-hooks';
+-import { HorizontalWizardLayoutCaption } from '@rocket.chat/layout';
+ import { normalizeLanguage } from '@rocket.chat/tools';
+ import { type TranslationLanguage, useSetting, useLoadLanguage, useLanguage, useLanguages } from '@rocket.chat/ui-contexts';
+ import { useMemo, useEffect } from 'react';
+ import type { UIEvent } from 'react';
+ import { Trans, useTranslation } from 'react-i18next';
+ 
++import { Button } from './ui/button';
++
+ const useSuggestedLanguages = ({
+ 	browserLanguage = normalizeLanguage(window.navigator.language ?? 'en'),
+ }: {
+@@ -59,7 +59,7 @@ const LoginSwitchLanguageFooter = ({
+ 	}
+ 
+ 	return (
+-		<HorizontalWizardLayoutCaption>
++		<div className='ep-flex ep-flex-wrap ep-gap-2'>
+ 			{suggestions.map((suggestion) => {
+ 				// If suggestion is "Default", skip it
+ 				if (!suggestion.key) {
+@@ -67,14 +67,14 @@ const LoginSwitchLanguageFooter = ({
+ 				}
+ 
+ 				return (
+-					<Button secondary small marginInlineEnd={8} key={suggestion.key} onClick={handleSwitchLanguageClick(suggestion)}>
++					<Button variant='outline' size='sm' key={suggestion.key} onClick={handleSwitchLanguageClick(suggestion)}>
+ 						<Trans i18nKey='registration.component.switchLanguage' tOptions={{ lng: suggestion.key }} values={{ name: suggestion.ogName }}>
+ 							Change to <strong>{suggestion.ogName}</strong>
+ 						</Trans>
+ 					</Button>
+ 				);
+ 			})}
+-		</HorizontalWizardLayoutCaption>
++		</div>
+ 	);
+ };
+ 
+-- 
+2.50.1 (Apple Git-155)
+

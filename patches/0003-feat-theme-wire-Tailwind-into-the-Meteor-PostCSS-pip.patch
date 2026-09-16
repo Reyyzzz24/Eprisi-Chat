@@ -1,0 +1,170 @@
+From 394d315611521ad5fdd9f0b6f5f5d84158d23033 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:17:35 +0700
+Subject: [PATCH 03/25] feat(theme): wire Tailwind into the Meteor PostCSS
+ pipeline (L1)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- tailwind.config.ts: prefix 'ep-', preflight off, theme.extend generated
+  from eprisi-theme/tokens.json (brand/accent colors, radius, fontSize,
+  layout widths/heights)
+- .postcssrc: tailwindcss plugin added before autoprefixer
+- eprisi-tailwind.css: @tailwind components/utilities only (no base),
+  imported last from main.css
+
+Verified against the actual .postcssrc plugin chain that postcss-easy-import
+does not swallow @tailwind directives — main pipeline works, no fallback
+build:css script needed.
+---
+ apps/meteor/.postcssrc                        |  3 +
+ .../imports/general/eprisi-tailwind.css       |  6 ++
+ apps/meteor/app/theme/client/main.css         |  5 +
+ apps/meteor/tailwind.config.ts                | 94 +++++++++++++++++++
+ 4 files changed, 108 insertions(+)
+ create mode 100644 apps/meteor/app/theme/client/imports/general/eprisi-tailwind.css
+ create mode 100644 apps/meteor/tailwind.config.ts
+
+diff --git a/apps/meteor/.postcssrc b/apps/meteor/.postcssrc
+index 5a23f05..91f39a2 100644
+--- a/apps/meteor/.postcssrc
++++ b/apps/meteor/.postcssrc
+@@ -6,6 +6,9 @@
+ 		},
+ 		"postcss-media-minmax": {},
+ 		"postcss-nested": {},
++		"tailwindcss": {
++			"config": "./tailwind.config.ts"
++		},
+ 		"autoprefixer": {}
+ 	},
+ 	"excludedPackages": [
+diff --git a/apps/meteor/app/theme/client/imports/general/eprisi-tailwind.css b/apps/meteor/app/theme/client/imports/general/eprisi-tailwind.css
+new file mode 100644
+index 0000000..2ad4bb0
+--- /dev/null
++++ b/apps/meteor/app/theme/client/imports/general/eprisi-tailwind.css
+@@ -0,0 +1,6 @@
++/* Eprisi theme (L1) — Tailwind utility layer for shadcn/ui components under
++   apps/meteor/client/components/ui/. No `@tailwind base` on purpose: base
++   would reset styles Rocket.Chat's own reset.css/base_old.css already own.
++   See eprisi-theme/README.md for the L0-L3 layering rationale. */
++@tailwind components;
++@tailwind utilities;
+diff --git a/apps/meteor/app/theme/client/main.css b/apps/meteor/app/theme/client/main.css
+index 0555ffb..0e102b6 100644
+--- a/apps/meteor/app/theme/client/main.css
++++ b/apps/meteor/app/theme/client/main.css
+@@ -19,3 +19,8 @@
+    by source order alone, without !important. See eprisi-theme/README.md. */
+ @import url('imports/general/eprisi-fonts.css');
+ @import url('imports/general/eprisi-tokens.css');
++
++/* Eprisi theme (L1) — Tailwind components/utilities for shadcn (GATE 3).
++   Must come after the L0 token overrides above so `ep-*` utility classes
++   can win on specificity+order when a component needs to override a token. */
++@import url('imports/general/eprisi-tailwind.css');
+diff --git a/apps/meteor/tailwind.config.ts b/apps/meteor/tailwind.config.ts
+new file mode 100644
+index 0000000..a2bf234
+--- /dev/null
++++ b/apps/meteor/tailwind.config.ts
+@@ -0,0 +1,94 @@
++import type { Config } from 'tailwindcss';
++
++// Single source of truth: eprisi-theme/palette.ts (generated from
++// eprisi-theme/tokens.json — see that file for pixel-sampling provenance of
++// every value below). Kept as literal values here (not an import) because
++// eprisi-theme/ lives outside this workspace's `content`/build root and
++// Meteor's bundler does not resolve paths above `apps/meteor/`.
++export default {
++	prefix: 'ep-',
++	// Preflight is OFF on purpose: Rocket.Chat's own reset.css/base_old.css
++	// are the app-wide reset. Tailwind's preflight would fight them across
++	// every legacy Fuselage screen this redesign does not touch.
++	corePlugins: { preflight: false },
++	content: ['./client/**/*.{ts,tsx}', '../../packages/web-ui-registration/src/**/*.{ts,tsx}'],
++	darkMode: ['class', '[data-theme="dark"]'],
++	theme: {
++		extend: {
++			colors: {
++				brand: {
++					50: '#F1F4F9',
++					100: '#DFE6F1',
++					200: '#C0CDE3',
++					300: '#99AFD1',
++					400: '#7291C0',
++					500: '#4F75B0',
++					600: '#3E5C8A',
++					700: '#365078',
++					800: '#293D5B',
++					900: '#1C2A3F',
++				},
++				accent: {
++					50: '#FDF8EC',
++					100: '#FBEFD5',
++					200: '#F7DEAB',
++					300: '#F2CA78',
++					400: '#EEB644',
++					500: '#E9A416',
++					600: '#B88111',
++					700: '#9F6F0F',
++					800: '#79550B',
++					900: '#543B08',
++				},
++				surface: {
++					light: '#F5F9FC',
++					room: '#F5F9FC',
++					tint: '#E8EEF5',
++					neutral: '#FFFFFF',
++					sidebar: '#0F1728',
++					navbar: '#0A2535',
++					hover: '#182238',
++				},
++				font: {
++					default: '#1E293B',
++					secondary: '#64748B',
++					'on-primary': '#FFFFFF',
++				},
++				stroke: {
++					'extra-light': '#E9EAEB',
++					light: '#E3EBF7',
++				},
++			},
++			borderRadius: {
++				sm: '6px',
++				md: '10px',
++				lg: '16px',
++				full: '9999px',
++			},
++			spacing: {
++				// Matches Fuselage's existing 4px scale (tokens.json spacing.scale) —
++				// values not already covered by Tailwind's default spacing scale.
++			},
++			fontFamily: {
++				sans: ["'IBM Plex Sans'", '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
++				heading: ["'Plus Jakarta Sans'", "'IBM Plex Sans'", '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
++			},
++			fontSize: {
++				h1: ['32px', { fontWeight: '700' }],
++				h2: ['18px', { fontWeight: '600' }],
++				p1: ['14px', { fontWeight: '400' }],
++				c1: ['13px', { fontWeight: '500' }],
++			},
++			width: {
++				sidebar: '262px',
++				'sidebar-collapsed': '64px',
++				'login-aside': '50%',
++				'login-card': '520px',
++			},
++			height: {
++				navbar: '56px',
++			},
++		},
++	},
++	plugins: [require('tailwindcss-animate')],
++} satisfies Config;
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,481 @@
+From 45af52767f69babcfa548dc373da2ade0a030275 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 15:34:42 +0700
+Subject: [PATCH 22/25] feat(theme): GATE 6a visual diff tooling + fix navy
+ sidebar/navbar cascade loss
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Adds scripts/visual-diff.mjs (Playwright + pixelmatch) and VERIFY.md per
+GATE 6's automated/manual split. Running it against a live dev server
+surfaced a real bug: Fuselage's dynamically-inserted #sidebar-palette
+style tag (dark-mode PaletteStyleTag) was winning the cascade over
+eprisi-tokens.css on tied selector specificity, so the navbar/sidebar
+rendered Fuselage's gray instead of the Eprisi navy — exactly the risk
+GATE 2's own comment had flagged as unverified. Fixed by doubling
+selector specificity (.rcx-navbar.rcx-navbar etc.), verified via
+computed style against the live app.
+
+Also logs several open, non-CSS findings (missing font-family utility
+on shadcn form controls, unbranded login logo/copy, no hero-image slot
+for the login aside) as deferred items in .visual/report.json rather
+than expanding this gate's scope to fix them inline.
+---
+ .gitignore                                    |   4 +
+ VERIFY.md                                     |  92 +++++++
+ .../client/imports/general/eprisi-tokens.css  |  21 +-
+ package.json                                  |   2 +
+ scripts/visual-diff.mjs                       | 236 ++++++++++++++++++
+ yarn.lock                                     |  20 ++
+ 6 files changed, 371 insertions(+), 4 deletions(-)
+ create mode 100644 VERIFY.md
+ create mode 100644 scripts/visual-diff.mjs
+
+diff --git a/.gitignore b/.gitignore
+index 8ee032f..c6c6731 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -62,3 +62,7 @@ storybook-static
+ development/tempo-data/
+ 
+ .env
++
++# GATE 6 visual-diff output (scripts/visual-diff.mjs) — regenerated locally,
++# not committed.
++.visual/
+diff --git a/VERIFY.md b/VERIFY.md
+new file mode 100644
+index 0000000..3f443e2
+--- /dev/null
++++ b/VERIFY.md
+@@ -0,0 +1,92 @@
++# GATE 6b — Manual Visual Verification
++
++This is the human half of GATE 6 (see `REDESIGN_PROMPT.md`). GATE 6a's automated
++pass (`scripts/visual-diff.mjs`) already produced `.visual/report.json` with
++screenshots, pixel diffs, and a structured list of findings — read that first.
++This checklist is for opening the live app in **Claude in Chrome** (or your own
++browser) and checking things a pixel diff can't: hover/focus states,
++interaction flows, and subjective "does this feel right" judgment.
++
++## Environment
++
++- App: `http://localhost:3000` (Meteor dev server, `yarn dev` in `apps/meteor`)
++- Test admin: `eprisiadmin` / `EprisiVerify14#Ok`
++- This is a local air-gapped dev instance seeded only for this verification —
++  not a real workspace. One channel exists: `#general`.
++- If the dev server isn't running: prepend the pinned Node toolchain
++  (`.toolchain/node-v22.22.3-darwin-arm64/bin`) and Meteor
++  (`~/.meteor`) to `PATH`, ensure the `rc-eprisi-mongo` Docker container is
++  running (`docker start rc-eprisi-mongo` if stopped), then `yarn dev` in
++  `apps/meteor`.
++
++## Known gaps (don't re-report these — see `.visual/report.json` for detail)
++
++- Login logo/copy still shows stock Rocket.Chat branding, not the mockup's
++  "EPRISI Chat" wordmark — content/asset gap, not a CSS bug.
++- Login aside has no hero photo/marketing copy — no settings slot exists for
++  that in Rocket.Chat today.
++- Shadcn Button/Input render in the browser's default control font instead of
++  IBM Plex Sans (computed `font-family: Arial`) — traced to a missing
++  Tailwind font utility from GATE 3, open for a fix decision.
++- Sidebar channel rows show a colored avatar tile instead of the mockup's
++  plain "#" hash icon — toggleable via the existing `sidebarDisplayAvatar`
++  setting, not a defect.
++- No multi-workspace icon rail (mockup shows one) — Rocket.Chat has no
++  multi-workspace concept, reported as a gap in GATE 5.
++
++## Screens and steps
++
++### 1. Login (`http://localhost:3000/`, logged out)
++
++- [ ] Brand color: primary button fill matches `#3E5C8A` (Eprisi brand-600)
++- [ ] Input fields use the light blue-gray tint (`#E8EEF5`), not stock white/gray
++- [ ] Radius: buttons and inputs have visibly rounded corners (~6-10px), not RC's stock sharp/minimal radius
++- [ ] Body copy renders in a humanist sans (IBM Plex Sans) — compare letterforms against system default; note if it looks like a fallback font instead (see known gap above)
++- [ ] Heading ("Login") renders in a distinct, bolder display face (Plus Jakarta Sans) vs. the body text font
++- [ ] Hover state: hovering the primary "Login" button visibly darkens/changes it
++- [ ] Focus state: Tab to the email field — a visible focus ring appears (brand-colored, not browser default blue)
++- [ ] Error state: submit with a wrong password — an inline error message appears below the field in a legible color (not clipped/overlapping)
++- [ ] "Forgot your password?" link is legible and brand-colored
++- [ ] Responsive: resize to ~390px wide (or use the mobile emulator) — form remains usable, no horizontal scroll, aside panel stacks or hides sensibly
++
++### 2. Register (`http://localhost:3000/register` if registration is enabled, or via "New here?")
++
++- [ ] Same brand color/radius/font checks as Login
++- [ ] Required-field validation shows inline errors on submit with empty fields
++- [ ] Password strength/requirements text is legible against the input background
++
++### 3. Reset password (via "Forgot your password?")
++
++- [ ] Same brand color/radius/font checks
++- [ ] Success state after submitting a valid email is clearly communicated (not just a silent redirect)
++
++### 4. Home dashboard (`http://localhost:3000/home`, logged in as `eprisiadmin`)
++
++- [ ] Navbar background is dark navy (`#0A2535`), not gray — **this was a real
++      bug found and fixed during GATE 6a (Fuselage's dynamic dark-mode style
++      tag was overriding it); re-confirm it still holds after any further
++      changes**
++- [ ] Sidebar background is dark navy (`#0F1728`), distinct from the navbar's shade
++- [ ] Search bar in the navbar reads as a dark pill with light placeholder text, not a plain white input
++- [ ] Click into `#general`: the sidebar row shows a rounded blue pill (brand-600) with white text, not the default RC gray/blue
++- [ ] Hover over an unselected sidebar row: subtle lighter highlight appears
++- [ ] Icons in the navbar (bell, gear, back/forward, avatar menu) are light-colored/visible against the dark background, not dark-on-dark
++- [ ] Dark mode: if you have OS-level dark mode, or use Chrome DevTools to force `prefers-color-scheme: dark` — confirm the navbar/sidebar don't visually break (this fork intentionally did not touch dark mode; the light-theme navy sidebar and RC's real dark theme happen to be visually close, but check for jarring transitions)
++- [ ] Responsive: resize to ~390px wide — sidebar collapses to a hamburger menu, no layout breakage, search bar still reachable
++
++### 5. Functional checks (not visual, but quick to verify while you're in there)
++
++- [ ] Login succeeds with `eprisiadmin` / `EprisiVerify14#Ok`
++- [ ] Login fails gracefully with a wrong password (error shown, no crash)
++- [ ] Registration form appears/works if `Accounts_RegistrationForm` is enabled (currently likely disabled — not required for GATE 6, note if you toggle it)
++- [ ] OAuth/SSO buttons: none configured in this dev instance, so none should appear — this matches the login screen showing no "Login with Eprisi Account" button (that's a mockup-only concept until an OAuth provider is actually configured)
++- [ ] Custom logo from admin panel: Admin → Layout → Assets lets you upload a
++      custom logo; if you upload one, confirm it appears in place of the
++      Rocket.Chat wordmark on both the login screen and navbar — this is the
++      real mechanism for closing the branding gap noted above
++
++## When done
++
++Note any checklist item that fails in the chat/PR, referencing this file. If
++everything passes except the already-known gaps above, GATE 6 is clear to
++close.
+diff --git a/apps/meteor/app/theme/client/imports/general/eprisi-tokens.css b/apps/meteor/app/theme/client/imports/general/eprisi-tokens.css
+index af165cf..e56075b 100644
+--- a/apps/meteor/app/theme/client/imports/general/eprisi-tokens.css
++++ b/apps/meteor/app/theme/client/imports/general/eprisi-tokens.css
+@@ -99,12 +99,25 @@
+    single-workspace and has no such component to split styling onto. Reported
+    as a mockup gap rather than built. The single dark value here is therefore
+    correct as-is, not a placeholder; see apps/meteor's eprisi-shell.css for
+-   the GATE 5 item-level (selected/hover) restyle within this single panel. */
+-.rcx-sidebar--main,
+-.rcx-sidepanel {
++   the GATE 5 item-level (selected/hover) restyle within this single panel.
++
++   GATE 6 finding (confirmed against the live dev server): Fuselage's
++   <PaletteStyleTag> inserts a `#sidebar-palette` <style> tag at runtime that
++   targets `.rcx-sidebar--main, .rcx-sidepanel, .rcx-navbar` with its own
++   forced-dark surface-sidebar value, and it lands AFTER this bundled
++   main.css in the DOM — exactly the risk flagged (but unverified) in the
++   original comment above. On tied specificity (single class selector, same
++   as ours), source order wins and the dynamic tag beat us, so the sidebar
++   rendered as Fuselage's dark-mode gray (#2f343d) instead of our navy.
++   Fixed by doubling the selector to raise specificity above the dynamic
++   tag's, per this project's own CSS rule (escalate specificity before
++   `!important`) — no need to touch every other token this way, only the
++   ones actually being contested here. */
++.rcx-sidebar--main.rcx-sidebar--main,
++.rcx-sidepanel.rcx-sidepanel {
+ 	--rcx-color-surface-sidebar: #0f1728;
+ }
+ 
+-.rcx-navbar {
++.rcx-navbar.rcx-navbar {
+ 	--rcx-color-surface-sidebar: #0a2535;
+ }
+diff --git a/package.json b/package.json
+index cacf1f1..2788c23 100644
+--- a/package.json
++++ b/package.json
+@@ -216,6 +216,8 @@
+ 		"@types/node": "~22.19.21",
+ 		"eslint": "~10.7.0",
+ 		"eslint-plugin-you-dont-need-lodash-underscore": "~6.14.0",
++		"pixelmatch": "^7.2.0",
++		"pngjs": "^7.0.0",
+ 		"ts-node": "^10.9.2",
+ 		"turbo": "2.9.14",
+ 		"typescript": "~5.9.3"
+diff --git a/scripts/visual-diff.mjs b/scripts/visual-diff.mjs
+new file mode 100644
+index 0000000..2f493b6
+--- /dev/null
++++ b/scripts/visual-diff.mjs
+@@ -0,0 +1,236 @@
++#!/usr/bin/env node
++/**
++ * GATE 6a — automated visual diff of the Eprisi theme against the source
++ * mockups (mockups/rocketchat/{login,dashboard}.jpg).
++ *
++ * The mockups are hand-drawn compositions, not screenshots, so a raw
++ * pixel-diff percentage is expected to be high and is not the signal that
++ * matters (see REDESIGN_PROMPT.md GATE 6). This script produces that number
++ * for reference, but the real output is `differences` in report.json — a
++ * structured, human-authored list of concrete deviations (color, spacing,
++ * radius, font-size, position) found by comparing the actual screenshots
++ * against the mockups side by side. This script only captures the
++ * screenshots and the pixel-diff overlay; the `differences` array below is
++ * filled in by hand after visual review, not computed.
++ *
++ * Usage: node scripts/visual-diff.mjs [baseURL]
++ *   baseURL defaults to http://localhost:3000 (a running `yarn dev` server).
++ *
++ * Requires an admin account already provisioned (see VERIFY.md for how this
++ * fork's test instance was seeded) — TEST_ADMIN_USER / TEST_ADMIN_PASS below
++ * must be able to log in for the authenticated /home capture to work.
++ */
++import { execFileSync } from 'node:child_process';
++import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++import { chromium } from '@playwright/test';
++import pixelmatch from 'pixelmatch';
++import { PNG } from 'pngjs';
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++const ROOT = path.resolve(__dirname, '..');
++const OUT_DIR = path.join(ROOT, '.visual');
++// mockups/ lives in the eprisi-workspace parent dir, one level above this
++// rc-fork checkout, alongside the eprisi-theme/ tokens directory.
++const MOCKUPS_DIR = path.join(ROOT, '..', 'mockups', 'rocketchat');
++
++const BASE_URL = process.argv[2] || process.env.VISUAL_DIFF_BASE_URL || 'http://localhost:3000';
++const TEST_ADMIN_USER = process.env.VISUAL_DIFF_ADMIN_USER || 'eprisiadmin';
++const TEST_ADMIN_PASS = process.env.VISUAL_DIFF_ADMIN_PASS || 'EprisiVerify14#Ok';
++
++const VIEWPORTS = [
++	{ name: 'desktop', width: 1440, height: 900 },
++	{ name: 'mobile', width: 390, height: 844 },
++];
++
++const SCREENS = [
++	{ name: 'login', path: '/', authenticated: false, baseline: 'login.jpg' },
++	{ name: 'home', path: '/home', authenticated: true, baseline: 'dashboard.jpg' },
++];
++
++mkdirSync(OUT_DIR, { recursive: true });
++
++/** Convert+crop a JPG mockup to a PNG matching a given viewport, via macOS `sips`.
++ * Mockups are 1440x1024 (full composition); the desktop viewport (1440x900)
++ * only needs the top crop. There is no mobile-specific mockup — see the
++ * `mobile-baseline` note attached to each mobile screen in report.json. */
++function baselineAsPng(jpgName, width, height) {
++	const jpgPath = path.join(MOCKUPS_DIR, jpgName);
++	const pngPath = path.join(OUT_DIR, `_baseline-${path.basename(jpgName, '.jpg')}.png`);
++	execFileSync('sips', ['-s', 'format', 'png', jpgPath, '--out', pngPath], { stdio: 'pipe' });
++	const png = PNG.sync.read(readFileSync(pngPath));
++	const cropped = new PNG({ width, height });
++	PNG.bitblt(png, cropped, 0, 0, Math.min(width, png.width), Math.min(height, png.height), 0, 0);
++	return cropped;
++}
++
++/** Log in once in a throwaway context and return its storageState, so every
++ * authenticated screen capture below starts from a clean context seeded with
++ * that state rather than reusing/re-navigating a single shared page. Reusing
++ * one page across an unauthenticated screenshot and a subsequent login was
++ * found to silently leave the app on the login form (Meteor/DDP client state
++ * left over from the first navigation) — fresh contexts per screen sidestep
++ * that entirely and make each capture independent/order-proof. */
++async function getAuthenticatedStorageState(browser) {
++	const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
++	const page = await context.newPage();
++	await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 60000 });
++	await page.getByPlaceholder('example@example.com').fill(TEST_ADMIN_USER);
++	await page.locator('input[type="password"]').fill(TEST_ADMIN_PASS);
++	await page.getByRole('button', { name: 'Login' }).click();
++	await page.waitForTimeout(3000);
++	const stillOnLoginForm = (await page.getByRole('heading', { name: 'Login' }).count()) > 0;
++	if (stillOnLoginForm) {
++		throw new Error(
++			`Login did not succeed for ${TEST_ADMIN_USER} — still on the login form after submit. Check VISUAL_DIFF_ADMIN_USER/PASS or that the test admin account exists (see VERIFY.md).`,
++		);
++	}
++	const state = await context.storageState();
++	await context.close();
++	return state;
++}
++
++async function main() {
++	const browser = await chromium.launch();
++	const report = { generatedAt: new Date().toISOString(), baseURL: BASE_URL, results: [] };
++	const authState = await getAuthenticatedStorageState(browser);
++
++	for (const viewport of VIEWPORTS) {
++		for (const screen of SCREENS) {
++			const context = await browser.newContext({
++				viewport: { width: viewport.width, height: viewport.height },
++				storageState: screen.authenticated ? authState : undefined,
++			});
++			const page = await context.newPage();
++			await page.goto(`${BASE_URL}${screen.path}`, { waitUntil: 'networkidle', timeout: 60000 });
++			await page.waitForTimeout(screen.authenticated ? 4000 : 1500);
++			const actualPath = path.join(OUT_DIR, `${screen.name}-${viewport.name}-actual.png`);
++			await page.screenshot({ path: actualPath });
++			await context.close();
++			report.results.push(diffAgainstBaseline(screen, viewport, actualPath));
++		}
++	}
++
++	await browser.close();
++
++	// Hand-authored structured findings from visual review of the captures
++	// above against the mockups — see GATE 6 report in chat for the review
++	// session these came from. Keyed by "<screen>-<viewport>" to match
++	// report.results[].id.
++	report.differences = HAND_REVIEWED_DIFFERENCES;
++
++	writeFileSync(path.join(OUT_DIR, 'report.json'), JSON.stringify(report, null, 2));
++	console.log(`Wrote ${report.results.length} captures and report.json to ${OUT_DIR}`);
++}
++
++function diffAgainstBaseline(screen, viewport, actualPath) {
++	const id = `${screen.name}-${viewport.name}`;
++	const result = { id, screen: screen.name, viewport: viewport.name, actualPath };
++
++	if (viewport.name !== 'desktop') {
++		result.note = 'No mobile-specific mockup exists (mockups/rocketchat only has one 1440x1024 composition per screen) — mobile capture is for manual/structural review only, not pixel-diffed.';
++		return result;
++	}
++
++	const actual = PNG.sync.read(readFileSync(actualPath));
++	const baseline = baselineAsPng(screen.baseline, viewport.width, viewport.height);
++	const diff = new PNG({ width: viewport.width, height: viewport.height });
++	const diffPixels = pixelmatch(actual.data, baseline.data, diff.data, viewport.width, viewport.height, { threshold: 0.15 });
++	const diffPath = path.join(OUT_DIR, `${id}-diff.png`);
++	writeFileSync(diffPath, PNG.sync.write(diff));
++
++	result.baselinePath = path.join(MOCKUPS_DIR, screen.baseline);
++	result.diffPath = diffPath;
++	result.diffPixelPercent = Number(((diffPixels / (viewport.width * viewport.height)) * 100).toFixed(2));
++	result.note = 'Mockup is a hand-drawn composition, not a screenshot — a high raw percentage here is expected; see report.differences for the actual structured findings.';
++	return result;
++}
++
++const HAND_REVIEWED_DIFFERENCES = [
++	{
++		id: 'sidebar-surface-color-cascade-loss',
++		severity: 'fixed',
++		screens: ['home-desktop', 'home-mobile'],
++		category: 'color',
++		summary:
++			"Navbar/sidebar rendered as Fuselage's forced-dark gray (#2f343d / navbar #3f444c) instead of the Eprisi navy tokens (#0f1728 / #0a2535).",
++		rootCause:
++			"Fuselage's <PaletteStyleTag> inserts a `#sidebar-palette` <style> tag at runtime targeting `.rcx-sidebar--main, .rcx-sidepanel, .rcx-navbar` with its own dark surface-sidebar value. It lands after eprisi-tokens.css in the DOM, so on tied selector specificity it won by source order — exactly the risk GATE 2's own comment flagged as unverified.",
++		fix: 'Doubled the selector specificity in eprisi-tokens.css (`.rcx-sidebar--main.rcx-sidebar--main`, `.rcx-navbar.rcx-navbar`) per the project convention of escalating specificity before `!important`. Verified via computed style: sidebarBg now rgb(15,23,40), navbarBg rgb(10,37,53) — exact token match.',
++	},
++	{
++		id: 'shadcn-form-controls-missing-font-family',
++		severity: 'open',
++		screens: ['login-desktop', 'login-mobile'],
++		category: 'font-family',
++		summary:
++			'The GATE 4 shadcn Button (and likely Input/other form controls) renders in the browser default control font (computed font-family: "Arial") instead of IBM Plex Sans.',
++		rootCause:
++			'eprisi-tailwind.css never defines a font-family utility mapped to --rcx-font-family-sans/--ep-font-family-heading, and button.tsx only applies ep-text-p1/ep-font-medium (size/weight), never a font-family class. Browsers do not inherit font-family into <button> by default, so with no explicit class it falls back to the OS UI control font.',
++		suggestedFix:
++			'Add a `font-sans`/`ep-font-sans` Tailwind utility in eprisi-tailwind.css mapped to var(--rcx-font-family-sans), then apply it in both local shadcn Button implementations (apps/meteor/client/components/ui/button.tsx and packages/web-ui-registration/src/components/ui/button.tsx) and audit Input for the same gap.',
++		deferred: true,
++		deferralReason:
++			'Root cause traces to GATE 3 (Tailwind theme setup), and a full fix touches component primitives shared across two separate packages — larger than GATE 6 verification scope. Reported for a scoping decision rather than fixed inline.',
++	},
++	{
++		id: 'login-branding-not-customized',
++		severity: 'open',
++		screens: ['login-desktop', 'login-mobile'],
++		category: 'content',
++		summary:
++			'Login screen still shows the literal Rocket.Chat wordmark/logo and generic "Login" heading with no subtitle, whereas the mockup shows a custom "EPRISI Chat" wordmark (amber speech-bubble icon), heading "Login to Eprisi Chat", and a subtitle.',
++		rootCause:
++			"The logo and page copy are pulled from RC's own branding assets/settings (Assets_logo, translation strings) and workspace-name-driven templates, not something GATE 4's component rewrite controls directly.",
++		note: 'Not a CSS defect — needs a product decision on whether/how to inject custom logo assets and copy overrides (admin asset upload vs. a hardcoded brand constant).',
++		deferred: true,
++	},
++	{
++		id: 'login-aside-hero-content-gap',
++		severity: 'open',
++		screens: ['login-desktop'],
++		category: 'content',
++		summary:
++			'Mockup\'s right-panel aside shows a photographic hero image with an overlay and custom marketing copy ("Secure Real-time Collaboration..."); actual renders a plain solid navy panel with the generic, workspace-name-driven "Welcome to {org} workspace / Powered by Rocket.Chat" text.',
++		rootCause:
++			"HorizontalTemplate's aside content is data-driven from the workspace name setting — there is no existing settings slot for a hero image or custom marketing copy.",
++		note: 'Reported as a mockup-vs-product gap per the GATE 5/6 rule (don\'t invent new settings/features without a decision) rather than built.',
++		deferred: true,
++	},
++	{
++		id: 'login-org-name-double-workspace-text',
++		severity: 'non-issue',
++		screens: ['login-desktop', 'home-desktop'],
++		category: 'content',
++		summary: 'Aside/Home heading reads "Welcome to Eprisi Workspace workspace" (word "workspace" doubled).',
++		rootCause:
++			'Test-data artifact: the seed script named the organization "Eprisi Workspace" during the setup wizard, and RC\'s own template is "Welcome to {name} workspace" — the duplication is from the test org name choice, not a template or theme bug.',
++		note: 'No code change needed; flagging only so it is not mistaken for a real defect when reading the screenshots.',
++	},
++	{
++		id: 'sidebar-channel-avatar-vs-hash-icon',
++		severity: 'open',
++		screens: ['home-desktop', 'home-mobile'],
++		category: 'component-style',
++		summary:
++			'Actual sidebar shows a colored letter-avatar tile ("G") for #general; mockup shows a plain "#" hash icon with no avatar tile, giving a cleaner/flatter row.',
++		rootCause: 'Driven by the existing sidebarDisplayAvatar user/admin preference, not a new feature — RC already supports both display modes.',
++		suggestedFix: 'Consider changing the *default* value of the sidebarDisplayAvatar setting to match the mockup, rather than a CSS change.',
++		deferred: true,
++	},
++	{
++		id: 'no-multi-workspace-icon-rail',
++		severity: 'non-issue',
++		screens: ['home-desktop', 'home-mobile'],
++		category: 'layout',
++		summary: "Mockup shows a Slack-style multi-workspace icon rail (E/HQ/PR/+ icons); Rocket.Chat has no multi-workspace concept.",
++		note: 'Already resolved as a reported gap in GATE 5 (see eprisi-tokens.css comment) — repeated here for completeness of the GATE 6 record, not a new finding.',
++	},
++];
++
++main().catch((err) => {
++	console.error(err);
++	process.exit(1);
++});
+diff --git a/yarn.lock b/yarn.lock
+index 0b46966..04a8c37 100644
+--- a/yarn.lock
++++ b/yarn.lock
+@@ -32263,6 +32263,17 @@ __metadata:
+   languageName: node
+   linkType: hard
+ 
++"pixelmatch@npm:^7.2.0":
++  version: 7.2.0
++  resolution: "pixelmatch@npm:7.2.0"
++  dependencies:
++    pngjs: "npm:^7.0.0"
++  bin:
++    pixelmatch: bin/pixelmatch
++  checksum: 10/cba5174bb6fe516f8264416cdd0f82c4e90f1d65a0e747dfd3af3bd06f3b35be63644da83ce1018d7ba6639849abb7501569b6a44f67d4b96334ff631da9dd0c
++  languageName: node
++  linkType: hard
++
+ "pkg-dir@npm:^3.0.0":
+   version: 3.0.0
+   resolution: "pkg-dir@npm:3.0.0"
+@@ -32349,6 +32360,13 @@ __metadata:
+   languageName: node
+   linkType: hard
+ 
++"pngjs@npm:^7.0.0":
++  version: 7.0.0
++  resolution: "pngjs@npm:7.0.0"
++  checksum: 10/e843ebbb0df092ee0f3a3e7dbd91ff87a239a4e4c4198fff202916bfb33b67622f4b83b3c29f3ccae94fcb97180c289df06068624554f61686fe6b9a4811f7db
++  languageName: node
++  linkType: hard
++
+ "polka@npm:^0.5.2":
+   version: 0.5.2
+   resolution: "polka@npm:0.5.2"
+@@ -35074,6 +35092,8 @@ __metadata:
+     eslint: "npm:~10.7.0"
+     eslint-plugin-you-dont-need-lodash-underscore: "npm:~6.14.0"
+     node-gyp: "npm:^11.0.0"
++    pixelmatch: "npm:^7.2.0"
++    pngjs: "npm:^7.0.0"
+     ts-node: "npm:^10.9.2"
+     turbo: "npm:2.9.14"
+     typescript: "npm:~5.9.3"
+-- 
+2.50.1 (Apple Git-155)
+

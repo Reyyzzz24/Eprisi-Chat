@@ -1,0 +1,262 @@
+From 14d6bf8df906f57167ad28080d594e53f52a4137 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:30:29 +0700
+Subject: [PATCH 07/25] feat(ui): local shadcn primitives for
+ web-ui-registration (L2)
+
+button, input, label, separator, skeleton + a password-input (Fuselage's
+PasswordInput replacement, eye-toggle via lucide-react) and a FormCallout
+(danger/warning/success/info banner, replacing Fuselage's Callout).
+
+FormCallout's status colors fall back to Tailwind's stock red/amber/
+emerald/blue: tokens.json has no sampled status colors (mockups show no
+error/success state).
+---
+ .../src/components/FormCallout.tsx            | 49 +++++++++++++++++++
+ .../src/components/ui/button.tsx              | 35 +++++++++++++
+ .../src/components/ui/input.tsx               | 21 ++++++++
+ .../src/components/ui/label.tsx               | 16 ++++++
+ .../src/components/ui/password-input.tsx      | 36 ++++++++++++++
+ .../src/components/ui/separator.tsx           | 23 +++++++++
+ .../src/components/ui/skeleton.tsx            |  7 +++
+ 7 files changed, 187 insertions(+)
+ create mode 100644 packages/web-ui-registration/src/components/FormCallout.tsx
+ create mode 100644 packages/web-ui-registration/src/components/ui/button.tsx
+ create mode 100644 packages/web-ui-registration/src/components/ui/input.tsx
+ create mode 100644 packages/web-ui-registration/src/components/ui/label.tsx
+ create mode 100644 packages/web-ui-registration/src/components/ui/password-input.tsx
+ create mode 100644 packages/web-ui-registration/src/components/ui/separator.tsx
+ create mode 100644 packages/web-ui-registration/src/components/ui/skeleton.tsx
+
+diff --git a/packages/web-ui-registration/src/components/FormCallout.tsx b/packages/web-ui-registration/src/components/FormCallout.tsx
+new file mode 100644
+index 0000000..7160fab
+--- /dev/null
++++ b/packages/web-ui-registration/src/components/FormCallout.tsx
+@@ -0,0 +1,49 @@
++import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
++import type { HTMLAttributes, ReactNode } from 'react';
++
++import { cn } from '../lib/utils';
++
++export type FormCalloutType = 'danger' | 'warning' | 'success' | 'info';
++
++export type FormCalloutProps = HTMLAttributes<HTMLDivElement> & {
++	type?: FormCalloutType;
++	icon?: 'mail' | boolean;
++	children: ReactNode;
++};
++
++// Tailwind's stock red/amber/emerald/blue palette, not Eprisi tokens: no
++// status colors were sampled from the mockups (see eprisi-theme/tokens.json
++// color.status — all null), so this falls back to defaults instead of
++// inventing brand values.
++const typeStyles: Record<FormCalloutType, string> = {
++	danger: 'ep-border-red-200 ep-bg-red-50 ep-text-red-700',
++	warning: 'ep-border-amber-200 ep-bg-amber-50 ep-text-amber-700',
++	success: 'ep-border-emerald-200 ep-bg-emerald-50 ep-text-emerald-700',
++	info: 'ep-border-blue-200 ep-bg-blue-50 ep-text-blue-700',
++};
++
++const typeIcons: Record<FormCalloutType, typeof Info> = {
++	danger: XCircle,
++	warning: AlertTriangle,
++	success: CheckCircle2,
++	info: Info,
++};
++
++export const FormCallout = ({ type = 'info', className, children, ...props }: FormCalloutProps) => {
++	const Icon = typeIcons[type];
++	return (
++		<div
++			className={cn(
++				'ep-flex ep-items-start ep-gap-2 ep-rounded-sm ep-border ep-p-3 ep-text-p1',
++				typeStyles[type],
++				className,
++			)}
++			{...props}
++		>
++			<Icon className='ep-mt-0.5 ep-h-4 ep-w-4 ep-shrink-0' />
++			<div>{children}</div>
++		</div>
++	);
++};
++
++export default FormCallout;
+diff --git a/packages/web-ui-registration/src/components/ui/button.tsx b/packages/web-ui-registration/src/components/ui/button.tsx
+new file mode 100644
+index 0000000..686dc45
+--- /dev/null
++++ b/packages/web-ui-registration/src/components/ui/button.tsx
+@@ -0,0 +1,35 @@
++import { cva, type VariantProps } from 'class-variance-authority';
++import type { ButtonHTMLAttributes } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++const buttonVariants = cva(
++	'ep-inline-flex ep-items-center ep-justify-center ep-gap-2 ep-whitespace-nowrap ep-rounded-md ep-text-p1 ep-font-medium ep-transition-colors focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 focus-visible:ep-ring-offset-2 disabled:ep-pointer-events-none disabled:ep-opacity-50',
++	{
++		variants: {
++			variant: {
++				default: 'ep-bg-brand-600 ep-text-font-on-primary hover:ep-bg-brand-700',
++				outline: 'ep-border ep-border-stroke-light ep-bg-transparent ep-text-font-default hover:ep-bg-surface-tint',
++				ghost: 'ep-text-font-default hover:ep-bg-surface-tint',
++				link: 'ep-h-auto ep-p-0 ep-text-brand-600 ep-underline-offset-4 hover:ep-underline',
++			},
++			size: {
++				default: 'ep-h-11 ep-px-4 ep-py-2',
++				sm: 'ep-h-9 ep-rounded-sm ep-px-3',
++				lg: 'ep-h-12 ep-rounded-md ep-px-8',
++			},
++		},
++		defaultVariants: {
++			variant: 'default',
++			size: 'default',
++		},
++	},
++);
++
++export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants>;
++
++export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, type = 'button', ...props }, ref) => (
++	<button type={type} className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
++));
++Button.displayName = 'Button';
+diff --git a/packages/web-ui-registration/src/components/ui/input.tsx b/packages/web-ui-registration/src/components/ui/input.tsx
+new file mode 100644
+index 0000000..01a50cc
+--- /dev/null
++++ b/packages/web-ui-registration/src/components/ui/input.tsx
+@@ -0,0 +1,21 @@
++import type { InputHTMLAttributes } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export type InputProps = InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean };
++
++export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, type, invalid, ...props }, ref) => (
++	<input
++		type={type}
++		className={cn(
++			'ep-flex ep-h-11 ep-w-full ep-rounded-sm ep-border ep-border-transparent ep-bg-surface-tint ep-px-3 ep-py-2 ep-text-p1 ep-text-font-default placeholder:ep-text-font-secondary focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-cursor-not-allowed disabled:ep-opacity-50',
++			invalid && 'ep-border-red-500 focus-visible:ep-ring-red-500',
++			className,
++		)}
++		aria-invalid={invalid || props['aria-invalid']}
++		ref={ref}
++		{...props}
++	/>
++));
++Input.displayName = 'Input';
+diff --git a/packages/web-ui-registration/src/components/ui/label.tsx b/packages/web-ui-registration/src/components/ui/label.tsx
+new file mode 100644
+index 0000000..08cb7af
+--- /dev/null
++++ b/packages/web-ui-registration/src/components/ui/label.tsx
+@@ -0,0 +1,16 @@
++import * as LabelPrimitive from '@radix-ui/react-label';
++import type { ComponentPropsWithoutRef, ElementRef } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Label = forwardRef<ElementRef<typeof LabelPrimitive.Root>, ComponentPropsWithoutRef<typeof LabelPrimitive.Root>>(
++	({ className, ...props }, ref) => (
++		<LabelPrimitive.Root
++			ref={ref}
++			className={cn('ep-text-c1 ep-font-medium ep-leading-none ep-text-font-default', className)}
++			{...props}
++		/>
++	),
++);
++Label.displayName = LabelPrimitive.Root.displayName;
+diff --git a/packages/web-ui-registration/src/components/ui/password-input.tsx b/packages/web-ui-registration/src/components/ui/password-input.tsx
+new file mode 100644
+index 0000000..3ba199a
+--- /dev/null
++++ b/packages/web-ui-registration/src/components/ui/password-input.tsx
+@@ -0,0 +1,36 @@
++import { Eye, EyeOff } from 'lucide-react';
++import type { InputHTMLAttributes } from 'react';
++import { forwardRef, useState } from 'react';
++
++import { cn } from '../../lib/utils';
++import { Input } from './input';
++
++export type PasswordInputProps = InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean };
++
++// No aria-label on the toggle button, matching Fuselage's own PasswordInput
++// baseline (icon-only, unlabeled) — not introducing new i18n keys that don't
++// exist in packages/i18n, per the "identical i18n" contract for this gate.
++export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(({ className, invalid, ...props }, ref) => {
++	const [visible, setVisible] = useState(false);
++
++	return (
++		<div className='ep-relative ep-w-full'>
++			<Input
++				type={visible ? 'text' : 'password'}
++				invalid={invalid}
++				className={cn('ep-pr-10', className)}
++				ref={ref}
++				{...props}
++			/>
++			<button
++				type='button'
++				tabIndex={-1}
++				onClick={() => setVisible((v) => !v)}
++				className='ep-absolute ep-inset-y-0 ep-right-0 ep-flex ep-w-10 ep-items-center ep-justify-center ep-text-font-secondary hover:ep-text-font-default'
++			>
++				{visible ? <EyeOff className='ep-h-4 ep-w-4' /> : <Eye className='ep-h-4 ep-w-4' />}
++			</button>
++		</div>
++	);
++});
++PasswordInput.displayName = 'PasswordInput';
+diff --git a/packages/web-ui-registration/src/components/ui/separator.tsx b/packages/web-ui-registration/src/components/ui/separator.tsx
+new file mode 100644
+index 0000000..2c4a0d5
+--- /dev/null
++++ b/packages/web-ui-registration/src/components/ui/separator.tsx
+@@ -0,0 +1,23 @@
++import * as SeparatorPrimitive from '@radix-ui/react-separator';
++import type { ComponentPropsWithoutRef, ElementRef } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Separator = forwardRef<
++	ElementRef<typeof SeparatorPrimitive.Root>,
++	ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
++>(({ className, orientation = 'horizontal', decorative = true, ...props }, ref) => (
++	<SeparatorPrimitive.Root
++		ref={ref}
++		decorative={decorative}
++		orientation={orientation}
++		className={cn(
++			'ep-shrink-0 ep-bg-stroke-extra-light',
++			orientation === 'horizontal' ? 'ep-h-px ep-w-full' : 'ep-h-full ep-w-px',
++			className,
++		)}
++		{...props}
++	/>
++));
++Separator.displayName = SeparatorPrimitive.Root.displayName;
+diff --git a/packages/web-ui-registration/src/components/ui/skeleton.tsx b/packages/web-ui-registration/src/components/ui/skeleton.tsx
+new file mode 100644
+index 0000000..62f485d
+--- /dev/null
++++ b/packages/web-ui-registration/src/components/ui/skeleton.tsx
+@@ -0,0 +1,7 @@
++import type { HTMLAttributes } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Skeleton = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
++	<div className={cn('ep-animate-pulse ep-rounded-md ep-bg-surface-tint', className)} {...props} />
++);
+-- 
+2.50.1 (Apple Git-155)
+

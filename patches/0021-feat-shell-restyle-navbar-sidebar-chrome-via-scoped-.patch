@@ -1,0 +1,190 @@
+From 72c6430b11f5637b7b78cc59da0a23eb6515f944 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:50:22 +0700
+Subject: [PATCH 21/25] feat(shell): restyle navbar/sidebar chrome via scoped
+ CSS tokens (L3b)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+GATE 5, scoped to CSS custom-property overrides only (user decision):
+NavBar and Sidebar are tightly coupled to Fuselage's own interactive
+logic (kebab menus, react-virtuoso virtualization, omnichannel/voip
+conditionals), and the gate's own contract forbids touching any of it,
+so no component rewrites here — just scoped `.rcx-navbar` /
+`.rcx-sidebar--main` variable overrides for the dark chrome, search
+pill, and selected/hover channel-row states from the dashboard mockup.
+
+Also resolves the icon-rail-vs-room-list split flagged as pending in
+GATE 2's eprisi-tokens.css: the mockup's multi-workspace icon rail has
+no Rocket.Chat equivalent (single-workspace app), so it's a reported
+gap, not a token split.
+---
+ .../client/imports/general/eprisi-shell.css   | 111 ++++++++++++++++++
+ .../client/imports/general/eprisi-tokens.css  |  14 +--
+ apps/meteor/app/theme/client/main.css         |   6 +
+ 3 files changed, 124 insertions(+), 7 deletions(-)
+ create mode 100644 apps/meteor/app/theme/client/imports/general/eprisi-shell.css
+
+diff --git a/apps/meteor/app/theme/client/imports/general/eprisi-shell.css b/apps/meteor/app/theme/client/imports/general/eprisi-shell.css
+new file mode 100644
+index 0000000..f5de642
+--- /dev/null
++++ b/apps/meteor/app/theme/client/imports/general/eprisi-shell.css
+@@ -0,0 +1,111 @@
++/* Eprisi theme — GATE 5 (L3b) dashboard shell restyle.
++ *
++ * Scope decision (see chat history / GATE 5 report): the dashboard shell
++ * components (NavBar, Sidebar, sidebar Item templates) are tightly coupled to
++ * Fuselage's own interactive logic — SidebarItemMenu's deferred kebab menu,
++ * react-virtuoso room-list virtualization, omnichannel/voip conditionals,
++ * keyboard shortcuts. GATE 5's own contract forbids touching any of that.
++ * So this gate restyles via scoped CSS custom-property overrides only — no
++ * component rewrites, no shadcn replacement of Fuselage primitives here.
++ *
++ * All rules below are scoped under `.rcx-navbar` or `.rcx-sidebar--main` so
++ * they cannot leak into unrelated app surfaces (message composer buttons,
++ * admin panel inputs, etc. keep Fuselage's normal light-theme tokens).
++ *
++ * Only background-color/color/border-color/border-radius are touched —
++ * never padding/margin-block/height on `.rcx-sidebar-item`, since
++ * react-virtuoso measures actual row height and a mismatch would show as
++ * scroll jumps or overlapping rows. horizontal margin is safe (doesn't
++ * affect virtuoso's height math) and is used below for the pill look.
++ *
++ * Loaded after eprisi-tokens.css (L0) and before eprisi-tailwind.css (L1),
++ * see main.css.
++ */
++
++/* -- Navbar (dark, `.rcx-navbar` already gets --rcx-color-surface-sidebar:
++      #0A2535 from eprisi-tokens.css) ---------------------------------- */
++
++.rcx-navbar {
++	border-bottom: 1px solid rgb(255 255 255 / 8%);
++	min-height: 56px; /* eprisi-theme/tokens.json layout.navbar.height */
++
++	/* Generic icon-button tokens, scoped here so only navbar buttons
++	   (back/forward, bell, admin menu, user menu trigger) pick up light-on-dark
++	   colors. Values are visual estimates (not pixel-sampled) matching the
++	   dashboard mockup's light-gray icon tone on the dark top bar — flag for
++	   GATE 6 visual diff. */
++	--rcx-color-button-icon-color: #cbd5e1;
++	--rcx-color-button-icon-background-color: transparent;
++	--rcx-color-button-icon-border-color: transparent;
++	--rcx-color-button-icon-hover-background-color: rgb(255 255 255 / 8%);
++	--rcx-color-button-icon-hover-border-color: transparent;
++	--rcx-color-button-icon-focus-background-color: rgb(255 255 255 / 8%);
++	--rcx-color-button-icon-active-background-color: rgb(255 255 255 / 14%);
++
++	/* Search input (NavBarSearch's fuselage TextInput) — dark pill matching
++	   the mockup's search bar, instead of the default white input. */
++	--rcx-input-colors-background-color: rgb(255 255 255 / 8%);
++	--rcx-input-colors-border-color: transparent;
++	--rcx-input-colors-color: #e2e8f0;
++	--rcx-input-colors-placeholder-color: #94a3b8;
++	--rcx-input-colors-hover-border-color: rgb(255 255 255 / 16%);
++	--rcx-input-colors-active-border-color: var(--ep-color-brand-400, #7291c0);
++	--rcx-input-colors-focus-border-color: var(--ep-color-brand-400, #7291c0);
++	--rcx-input-colors-focus-icon-color: #e2e8f0;
++}
++
++.rcx-navbar-divider {
++	border-color: rgb(255 255 255 / 12%);
++}
++
++/* Text/link color for anything rendered as plain text in the navbar (e.g.
++   user menu name label), independent of the button tokens above. */
++.rcx-navbar,
++.rcx-navbar a:where(:not(.rcx-button)) {
++	color: #e2e8f0;
++}
++
++/* -- Sidebar (dark, `.rcx-sidebar--main` already gets
++      --rcx-color-surface-sidebar: #0F1728 from eprisi-tokens.css) ------ */
++
++.rcx-sidebar--main {
++	--rcx-sidebar-color-font-default: #94a3b8;
++	--rcx-sidebar-color-font-active: #f8fafc;
++	--rcx-sidebar-item-color-highlighted: #f8fafc;
++	--rcx-sidebar-link-color: #cbd5e1;
++	--rcx-sidebar-color-surface-hover: rgb(255 255 255 / 6%);
++
++	/* eprisi-theme/tokens.json color.brand.600 — matches the mockup's active
++	   channel-row pill fill exactly (sampled anchor, not a derived shade). */
++	--rcx-sidebar-color-surface-selected: var(--ep-color-brand-600, #3e5c8a);
++	--rcx-sidebar-color-stroke-extra-light: rgb(255 255 255 / 8%);
++	--rcx-sidebar-accordion-border-color: rgb(255 255 255 / 8%);
++
++	/* Same icon-button token scoping as the navbar, for sidebar-item kebab
++	   menus, the "create new" toolbar icon, etc. */
++	--rcx-color-button-icon-color: #94a3b8;
++	--rcx-color-button-icon-hover-background-color: rgb(255 255 255 / 8%);
++	--rcx-color-button-icon-focus-background-color: rgb(255 255 255 / 8%);
++}
++
++/* Pill look for channel rows, per the mockup's rounded active-row treatment.
++   border-radius doesn't participate in virtuoso's height measurement, so
++   this is safe alongside "styling ok, mechanism not" from the GATE 5
++   contract. Horizontal margin only (no vertical) for the same reason. */
++.rcx-sidebar--main .rcx-sidebar-item {
++	border-radius: 8px;
++	margin-inline: 8px;
++}
++
++/* Selected row text should read white-on-brand, not the default
++   `--rcx-sidebar-color-font-default` gray — Fuselage doesn't expose a
++   dedicated var for this, so it's targeted directly at component-scope
++   (background-color only comes from the token above; this only sets color,
++   no box-model change, so react-virtuoso's row-height measurement is
++   unaffected). */
++.rcx-sidebar-item--selected,
++.rcx-sidebar-item--selected .rcx-sidebar-item__title,
++.rcx-sidebar-item:active:not(:focus-within),
++.rcx-sidebar-item:active:not(:focus-within) .rcx-sidebar-item__title {
++	color: #f8fafc;
++}
+diff --git a/apps/meteor/app/theme/client/imports/general/eprisi-tokens.css b/apps/meteor/app/theme/client/imports/general/eprisi-tokens.css
+index 377ef9c..af165cf 100644
+--- a/apps/meteor/app/theme/client/imports/general/eprisi-tokens.css
++++ b/apps/meteor/app/theme/client/imports/general/eprisi-tokens.css
+@@ -93,13 +93,13 @@
+ /* Sidebar (classic `.rcx-sidebar--main`) and the newer secondary-nav side
+    panel (`.rcx-sidepanel`, feature-flag 'secondarySidebar') are grouped
+    together deliberately, matching the existing selector grouping already used
+-   by MainLayoutStyleTags.tsx's dark PaletteStyleTag. The dashboard mockup
+-   actually shows two adjacent tones (a narrower icon rail vs. a wider
+-   room-list panel) within this region — collapsing both to one value here is
+-   an intentional L0 simplification; splitting them precisely requires
+-   knowing which DOM node renders which class, which is GATE 5 (component
+-   rewrite) territory, not a global token concern. Flagged for a GATE 5
+-   decision. */
++   by MainLayoutStyleTags.tsx's dark PaletteStyleTag.
++   GATE 5 resolution: the dashboard mockup's narrower icon rail (workspace
++   switcher icons E/HQ/PR/+) has no Rocket.Chat equivalent — RC is
++   single-workspace and has no such component to split styling onto. Reported
++   as a mockup gap rather than built. The single dark value here is therefore
++   correct as-is, not a placeholder; see apps/meteor's eprisi-shell.css for
++   the GATE 5 item-level (selected/hover) restyle within this single panel. */
+ .rcx-sidebar--main,
+ .rcx-sidepanel {
+ 	--rcx-color-surface-sidebar: #0f1728;
+diff --git a/apps/meteor/app/theme/client/main.css b/apps/meteor/app/theme/client/main.css
+index 0e102b6..c7f5bfc 100644
+--- a/apps/meteor/app/theme/client/main.css
++++ b/apps/meteor/app/theme/client/main.css
+@@ -20,6 +20,12 @@
+ @import url('imports/general/eprisi-fonts.css');
+ @import url('imports/general/eprisi-tokens.css');
+ 
++/* Eprisi theme (GATE 5 / L3b) — dashboard shell (navbar/sidebar) restyle,
++   scoped to `.rcx-navbar` / `.rcx-sidebar--main` only. Must load after the
++   L0 tokens above (uses --ep-color-brand-* from eprisi-tokens.css) and
++   before L1 Tailwind below. */
++@import url('imports/general/eprisi-shell.css');
++
+ /* Eprisi theme (L1) — Tailwind components/utilities for shadcn (GATE 3).
+    Must come after the L0 token overrides above so `ep-*` utility classes
+    can win on specificity+order when a component needs to override a token. */
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,64 @@
+From 64819ca086e4766ee4d3a7d0131b5b8433718103 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:30:46 +0700
+Subject: [PATCH 12/25] feat(login): rebuild FormSkeleton with local Skeleton
+ primitive (L3a)
+
+Fuselage Skeleton/InputBoxSkeleton + @rocket.chat/layout Form* ->
+local ui/skeleton.tsx + plain markup. No logic (purely a loading
+placeholder, no hooks/state to preserve).
+---
+ .../src/template/FormSkeleton.tsx             | 38 ++++++-------------
+ 1 file changed, 11 insertions(+), 27 deletions(-)
+
+diff --git a/packages/web-ui-registration/src/template/FormSkeleton.tsx b/packages/web-ui-registration/src/template/FormSkeleton.tsx
+index 30430c6..f5e4f50 100644
+--- a/packages/web-ui-registration/src/template/FormSkeleton.tsx
++++ b/packages/web-ui-registration/src/template/FormSkeleton.tsx
+@@ -1,32 +1,16 @@
+-import { Field, FieldLabel, FieldRow, FieldHint, FieldDescription, Skeleton, InputBoxSkeleton } from '@rocket.chat/fuselage';
+-import { Form, FormContainer, FormFooter, FormHeader, FormTitle } from '@rocket.chat/layout';
++import { Skeleton } from '../components/ui/skeleton';
+ 
+ const FormSkeleton = () => (
+-	<Form aria-busy>
+-		<FormHeader>
+-			<FormTitle>
+-				<Skeleton />
+-			</FormTitle>
+-		</FormHeader>
+-		<FormContainer></FormContainer>
+-		<Field>
+-			<FieldLabel>
+-				<Skeleton />
+-			</FieldLabel>
+-			<FieldDescription>
+-				<Skeleton />
+-			</FieldDescription>
+-			<FieldRow>
+-				<InputBoxSkeleton />
+-			</FieldRow>
+-			<FieldHint>
+-				<Skeleton />
+-			</FieldHint>
+-		</Field>
+-		<FormFooter>
+-			<Skeleton />
+-		</FormFooter>
+-	</Form>
++	<form aria-busy className='ep-flex ep-w-full ep-max-w-[520px] ep-flex-col ep-gap-6'>
++		<Skeleton className='ep-h-8 ep-w-2/3' />
++		<div className='ep-flex ep-flex-col ep-gap-2'>
++			<Skeleton className='ep-h-4 ep-w-24' />
++			<Skeleton className='ep-h-4 ep-w-40' />
++			<Skeleton className='ep-h-11 ep-w-full' />
++			<Skeleton className='ep-h-3 ep-w-32' />
++		</div>
++		<Skeleton className='ep-h-11 ep-w-full' />
++	</form>
+ );
+ 
+ export default FormSkeleton;
+-- 
+2.50.1 (Apple Git-155)
+

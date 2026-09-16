@@ -1,0 +1,53 @@
+From 283b24aded1c83f663a0805734580c6a2b1b7524 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:30:21 +0700
+Subject: [PATCH 06/25] chore(deps): add local shadcn deps to
+ web-ui-registration package
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Radix (label, separator), cva, clsx, tailwind-merge, lucide-react — this
+package is a separate yarn workspace from apps/meteor and cannot import
+apps/meteor/client/components/ui/* (wrong dependency direction), so it
+gets its own local component copies + cn() util instead.
+---
+ packages/web-ui-registration/package.json     | 8 +++++++-
+ packages/web-ui-registration/src/lib/utils.ts | 6 ++++++
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+ create mode 100644 packages/web-ui-registration/src/lib/utils.ts
+
+diff --git a/packages/web-ui-registration/package.json b/packages/web-ui-registration/package.json
+index 807fa13..2111ebb 100644
+--- a/packages/web-ui-registration/package.json
++++ b/packages/web-ui-registration/package.json
+@@ -17,7 +17,13 @@
+ 		"typecheck": "tsc --noEmit"
+ 	},
+ 	"dependencies": {
+-		"dompurify": "~3.4.13"
++		"@radix-ui/react-label": "^2.1.15",
++		"@radix-ui/react-separator": "^1.1.7",
++		"class-variance-authority": "^0.7.1",
++		"clsx": "^2.1.1",
++		"dompurify": "~3.4.13",
++		"lucide-react": "^1.46.0",
++		"tailwind-merge": "^3.7.0"
+ 	},
+ 	"devDependencies": {
+ 		"@rocket.chat/core-typings": "workspace:~",
+diff --git a/packages/web-ui-registration/src/lib/utils.ts b/packages/web-ui-registration/src/lib/utils.ts
+new file mode 100644
+index 0000000..94b1e34
+--- /dev/null
++++ b/packages/web-ui-registration/src/lib/utils.ts
+@@ -0,0 +1,6 @@
++import { type ClassValue, clsx } from 'clsx';
++import { twMerge } from 'tailwind-merge';
++
++export function cn(...inputs: ClassValue[]): string {
++	return twMerge(clsx(inputs));
++}
+-- 
+2.50.1 (Apple Git-155)
+

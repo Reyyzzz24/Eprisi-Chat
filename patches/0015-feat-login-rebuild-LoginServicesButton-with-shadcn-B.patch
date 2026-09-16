@@ -1,0 +1,72 @@
+From 63295be3dd5d95d0b549bcdbc8c60c8f10273772 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:31:13 +0700
+Subject: [PATCH 15/25] feat(login): rebuild LoginServicesButton with shadcn
+ Button (L3a)
+
+Fuselage Button -> local ui/button.tsx (variant='outline', matching the
+mockup's single OAuth-button style). Provider icon still rendered via
+Fuselage's Icon component (sprite-based, no shadcn/lucide equivalent for
+@rocket.chat/icons provider glyphs like github/gitlab/google).
+
+Per-provider buttonColor/buttonLabelColor no longer applied visually
+(normalized to one outline style per the mockup) but still destructured
+out of props so the payload sent to useLoginWithService is byte-identical
+to before. All click/redirect/popup logic untouched.
+---
+ .../src/LoginServicesButton.tsx                  | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
+
+diff --git a/packages/web-ui-registration/src/LoginServicesButton.tsx b/packages/web-ui-registration/src/LoginServicesButton.tsx
+index 5cdbe35..3fa3d13 100644
+--- a/packages/web-ui-registration/src/LoginServicesButton.tsx
++++ b/packages/web-ui-registration/src/LoginServicesButton.tsx
+@@ -1,4 +1,4 @@
+-import { Button } from '@rocket.chat/fuselage';
++import { Icon } from '@rocket.chat/fuselage';
+ import type { Keys as IconName } from '@rocket.chat/icons';
+ import type { LoginService } from '@rocket.chat/ui-contexts';
+ import { useLoginWithService } from '@rocket.chat/ui-contexts';
+@@ -6,6 +6,7 @@ import type { SetStateAction, Dispatch } from 'react';
+ import { useCallback } from 'react';
+ import { useTranslation } from 'react-i18next';
+ 
++import { Button } from './components/ui/button';
+ import type { LoginErrorState, LoginErrors } from './LoginForm';
+ 
+ const servicesSupportedByMeteor = ['saml', 'cas', 'ldap'];
+@@ -18,8 +19,8 @@ const LoginServicesButton = <T extends LoginService>({
+ 	className,
+ 	disabled,
+ 	setError,
+-	buttonColor,
+-	buttonLabelColor,
++	buttonColor: _buttonColor,
++	buttonLabelColor: _buttonLabelColor,
+ 	loginStyle,
+ 	enableModernOAuthFlow,
+ 	...props
+@@ -68,17 +69,14 @@ const LoginServicesButton = <T extends LoginService>({
+ 
+ 	return (
+ 		<Button
+-			icon={icon as IconName}
++			variant='outline'
++			size='lg'
+ 			className={className}
+ 			onClick={handleOnClick}
+ 			title={buttonLabelText && buttonLabelText !== title ? title : undefined}
+ 			disabled={disabled}
+-			alignItems='center'
+-			display='flex'
+-			justifyContent='center'
+-			color={buttonLabelColor}
+-			backgroundColor={buttonColor}
+ 		>
++			{icon && <Icon name={icon as IconName} size='x20' />}
+ 			{buttonLabelText || t('Sign_in_with__provider__', { provider: title })}
+ 		</Button>
+ 	);
+-- 
+2.50.1 (Apple Git-155)
+

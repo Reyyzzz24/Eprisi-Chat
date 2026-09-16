@@ -1,0 +1,76 @@
+From 87f4b98d03e5f0402b1739988074b8d601a8bfa1 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:31:20 +0700
+Subject: [PATCH 16/25] feat(login): rebuild LoginServices with shadcn
+ Separator/Button (L3a)
+
+Fuselage Divider/ButtonGroup/Button -> local ui/separator.tsx + plain
+flex layout + ui/button.tsx. Same services list, desktop-app filtering,
+and OAuth-on-web logic untouched.
+---
+ .../web-ui-registration/src/LoginServices.tsx | 22 +++++++++++--------
+ 1 file changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/packages/web-ui-registration/src/LoginServices.tsx b/packages/web-ui-registration/src/LoginServices.tsx
+index cb5ce3a..91551a9 100644
+--- a/packages/web-ui-registration/src/LoginServices.tsx
++++ b/packages/web-ui-registration/src/LoginServices.tsx
+@@ -1,10 +1,11 @@
+-import { Button, ButtonGroup, Divider } from '@rocket.chat/fuselage';
+ import { useLoginServices, useSetting } from '@rocket.chat/ui-contexts';
+ import { useMemo, type Dispatch, type SetStateAction } from 'react';
+ import { useTranslation } from 'react-i18next';
+ 
+ import type { LoginErrorState } from './LoginForm';
+ import LoginServicesButton from './LoginServicesButton';
++import { Button } from './components/ui/button';
++import { Separator } from './components/ui/separator';
+ 
+ const servicesToBeShownOnDesktop = ['cas', 'ldap'];
+ 
+@@ -39,15 +40,18 @@ const LoginServices = ({ disabled, setError }: LoginServicesProps) => {
+ 	};
+ 
+ 	return (
+-		<>
++		<div className='ep-flex ep-flex-col ep-gap-3'>
+ 			{showFormLogin && (
+-				<Divider marginBlock={24} padding={0}>
+-					{t('registration.component.form.divider')}
+-				</Divider>
++				<div className='ep-relative ep-my-2 ep-flex ep-items-center ep-justify-center'>
++					<Separator className='ep-absolute' />
++					<span className='ep-relative ep-bg-surface-light ep-px-3 ep-text-c1 ep-text-font-secondary'>
++						{t('registration.component.form.divider')}
++					</span>
++				</div>
+ 			)}
+ 
+ 			{servicesToShow.length > 0 && (
+-				<ButtonGroup vertical stretch small>
++				<div className='ep-flex ep-flex-col ep-gap-2'>
+ 					{servicesToShow.map((service) => (
+ 						<LoginServicesButton
+ 							disabled={disabled}
+@@ -57,15 +61,15 @@ const LoginServices = ({ disabled, setError }: LoginServicesProps) => {
+ 							enableModernOAuthFlow={enableModernOAuthFlow}
+ 						/>
+ 					))}
+-				</ButtonGroup>
++				</div>
+ 			)}
+ 
+ 			{isDesktopApp && (
+-				<Button width='100%' primary onClick={handleLoginOnWeb} marginBlockStart={4}>
++				<Button className='ep-mt-1 ep-w-full' onClick={handleLoginOnWeb}>
+ 					{t('registration.component.login.onWeb')}
+ 				</Button>
+ 			)}
+-		</>
++		</div>
+ 	);
+ };
+ export default LoginServices;
+-- 
+2.50.1 (Apple Git-155)
+

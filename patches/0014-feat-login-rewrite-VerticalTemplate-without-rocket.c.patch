@@ -1,0 +1,68 @@
+From f02a8ddf07a2235717d4b828a1abc8d15e0ee2e9 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:31:05 +0700
+Subject: [PATCH 14/25] feat(login): rewrite VerticalTemplate without
+ @rocket.chat/layout (L3a)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Single-column fallback (Layout_Login_Template=vertical-template) — no
+dedicated mockup exists for this variant, so it reuses the same tokens/
+components as HorizontalTemplate stacked vertically. Same hooks and
+contract (logo/background asset hooks, all four shared components
+rendered) as HorizontalTemplate.
+---
+ .../src/template/VerticalTemplate.tsx         | 27 +++++++++++--------
+ 1 file changed, 16 insertions(+), 11 deletions(-)
+
+diff --git a/packages/web-ui-registration/src/template/VerticalTemplate.tsx b/packages/web-ui-registration/src/template/VerticalTemplate.tsx
+index 121d1d2..1185e08 100644
+--- a/packages/web-ui-registration/src/template/VerticalTemplate.tsx
++++ b/packages/web-ui-registration/src/template/VerticalTemplate.tsx
+@@ -1,5 +1,4 @@
+ import { Box } from '@rocket.chat/fuselage';
+-import { VerticalWizardLayout, VerticalWizardLayoutTitle, VerticalWizardLayoutFooter } from '@rocket.chat/layout';
+ import { useSetting, useAssetWithDarkModePath } from '@rocket.chat/ui-contexts';
+ import type { ReactNode } from 'react';
+ 
+@@ -16,20 +15,26 @@ const VerticalTemplate = ({ children }: VerticalTemplateProps) => {
+ 	const customBackground = useAssetWithDarkModePath('background');
+ 
+ 	return (
+-		<VerticalWizardLayout
+-			background={customBackground}
+-			logo={!hideLogo && customLogo ? <Box is='img' maxHeight='x40' marginInline='neg-x8' src={customLogo} alt='Logo' /> : <></>}
++		<div
++			className='ep-flex ep-min-h-screen ep-w-full ep-flex-col ep-items-center ep-bg-surface-light ep-bg-cover ep-bg-center ep-px-6 ep-py-10 ep-font-sans'
++			style={customBackground ? { backgroundImage: `url(${customBackground})` } : undefined}
+ 		>
+-			<VerticalWizardLayoutTitle>
++			{!hideLogo && customLogo && <Box is='img' maxHeight='x40' className='ep-mb-6' src={customLogo} alt='Logo' />}
++
++			<div className='ep-mb-2 ep-text-center ep-text-font-default'>
+ 				<RegisterTitle />
+-			</VerticalWizardLayoutTitle>
+-			<LoginPoweredBy />
+-			{children}
+-			<VerticalWizardLayoutFooter>
++			</div>
++			<div className='ep-mb-6 ep-text-font-default'>
++				<LoginPoweredBy />
++			</div>
++
++			<div className='ep-w-full ep-max-w-[420px]'>{children}</div>
++
++			<div className='ep-mt-8 ep-flex ep-w-full ep-max-w-[420px] ep-flex-col ep-items-center ep-gap-2'>
+ 				<LoginTerms />
+ 				<LoginSwitchLanguageFooter />
+-			</VerticalWizardLayoutFooter>
+-		</VerticalWizardLayout>
++			</div>
++		</div>
+ 	);
+ };
+ 
+-- 
+2.50.1 (Apple Git-155)
+

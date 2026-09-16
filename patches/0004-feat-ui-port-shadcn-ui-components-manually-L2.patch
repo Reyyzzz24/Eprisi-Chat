@@ -1,0 +1,992 @@
+From 29899cb24929fbfaeb7685228e352260814f92c4 Mon Sep 17 00:00:00 2001
+From: Reyyzzz24 <revayuliansatria@gmail.com>
+Date: Wed, 16 Sep 2026 14:17:43 +0700
+Subject: [PATCH 04/25] feat(ui): port shadcn/ui components manually (L2)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+button, input, label, card, form, checkbox, separator, avatar,
+dropdown-menu, dialog, tooltip, tabs, scroll-area, badge, skeleton —
+copied from shadcn/ui source (not via CLI, which doesn't understand this
+monorepo's layout), adapted with the 'ep-' Tailwind prefix and wired to
+client/lib/utils.ts's cn(). No new TS path alias added; imports are
+relative per the fork's tsconfig rule.
+
+form.tsx's error styling falls back to Tailwind's stock red-600 rather
+than an Eprisi token: tokens.json has no sampled danger color (mockups
+show no error state).
+---
+ .../client/components/ui/__showcase.tsx       | 151 ++++++++++++++++++
+ apps/meteor/client/components/ui/avatar.tsx   |  35 ++++
+ apps/meteor/client/components/ui/badge.tsx    |  26 +++
+ apps/meteor/client/components/ui/button.tsx   |  43 +++++
+ apps/meteor/client/components/ui/card.tsx     |  40 +++++
+ apps/meteor/client/components/ui/checkbox.tsx |  24 +++
+ apps/meteor/client/components/ui/dialog.tsx   |  73 +++++++++
+ .../client/components/ui/dropdown-menu.tsx    | 151 ++++++++++++++++++
+ apps/meteor/client/components/ui/form.tsx     | 109 +++++++++++++
+ apps/meteor/client/components/ui/input.tsx    |  19 +++
+ apps/meteor/client/components/ui/label.tsx    |  15 ++
+ .../client/components/ui/scroll-area.tsx      |  37 +++++
+ .../meteor/client/components/ui/separator.tsx |  23 +++
+ apps/meteor/client/components/ui/skeleton.tsx |   7 +
+ apps/meteor/client/components/ui/tabs.tsx     |  49 ++++++
+ apps/meteor/client/components/ui/tooltip.tsx  |  24 +++
+ apps/meteor/client/lib/utils.ts               |   6 +
+ 17 files changed, 832 insertions(+)
+ create mode 100644 apps/meteor/client/components/ui/__showcase.tsx
+ create mode 100644 apps/meteor/client/components/ui/avatar.tsx
+ create mode 100644 apps/meteor/client/components/ui/badge.tsx
+ create mode 100644 apps/meteor/client/components/ui/button.tsx
+ create mode 100644 apps/meteor/client/components/ui/card.tsx
+ create mode 100644 apps/meteor/client/components/ui/checkbox.tsx
+ create mode 100644 apps/meteor/client/components/ui/dialog.tsx
+ create mode 100644 apps/meteor/client/components/ui/dropdown-menu.tsx
+ create mode 100644 apps/meteor/client/components/ui/form.tsx
+ create mode 100644 apps/meteor/client/components/ui/input.tsx
+ create mode 100644 apps/meteor/client/components/ui/label.tsx
+ create mode 100644 apps/meteor/client/components/ui/scroll-area.tsx
+ create mode 100644 apps/meteor/client/components/ui/separator.tsx
+ create mode 100644 apps/meteor/client/components/ui/skeleton.tsx
+ create mode 100644 apps/meteor/client/components/ui/tabs.tsx
+ create mode 100644 apps/meteor/client/components/ui/tooltip.tsx
+ create mode 100644 apps/meteor/client/lib/utils.ts
+
+diff --git a/apps/meteor/client/components/ui/__showcase.tsx b/apps/meteor/client/components/ui/__showcase.tsx
+new file mode 100644
+index 0000000..6faae81
+--- /dev/null
++++ b/apps/meteor/client/components/ui/__showcase.tsx
+@@ -0,0 +1,151 @@
++import type { ReactElement } from 'react';
++import { useForm } from 'react-hook-form';
++
++import { Avatar, AvatarFallback, AvatarImage } from './avatar';
++import { Badge } from './badge';
++import { Button } from './button';
++import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './card';
++import { Checkbox } from './checkbox';
++import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './dialog';
++import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown-menu';
++import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from './form';
++import { Input } from './input';
++import { Label } from './label';
++import { ScrollArea } from './scroll-area';
++import { Separator } from './separator';
++import { Skeleton } from './skeleton';
++import { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
++import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
++
++/**
++ * GATE 3 proof-of-compile page — exercises every shadcn component ported in
++ * this gate so a Meteor dev build failure surfaces here instead of silently
++ * in an unrelated screen. Temporary: removed in GATE 7 (see REDESIGN_PROMPT.md).
++ */
++type ShowcaseFormValues = { email: string };
++
++const ShowcaseForm = (): ReactElement => {
++	const form = useForm<ShowcaseFormValues>({ defaultValues: { email: '' } });
++	return (
++		<Form {...form}>
++			<form className='ep-flex ep-flex-col ep-gap-4' onSubmit={form.handleSubmit(() => undefined)}>
++				<FormField
++					control={form.control}
++					name='email'
++					rules={{ required: 'Email is required' }}
++					render={({ field }) => (
++						<FormItem>
++							<FormLabel>Email</FormLabel>
++							<FormControl>
++								<Input placeholder='you@eprisi.com' {...field} />
++							</FormControl>
++							<FormMessage />
++						</FormItem>
++					)}
++				/>
++				<Button type='submit'>Submit</Button>
++			</form>
++		</Form>
++	);
++};
++
++const UiShowcase = (): ReactElement => (
++	<TooltipProvider>
++		<div className='ep-flex ep-min-h-screen ep-flex-col ep-gap-8 ep-bg-surface-light ep-p-8 ep-font-sans'>
++			<h1 className='ep-font-heading ep-text-h1 ep-text-font-default'>Eprisi UI showcase (GATE 3)</h1>
++
++			<section className='ep-flex ep-flex-wrap ep-items-center ep-gap-3'>
++				<Button>Default</Button>
++				<Button variant='outline'>Outline</Button>
++				<Button variant='ghost'>Ghost</Button>
++				<Button variant='link'>Link</Button>
++				<Button size='sm'>Small</Button>
++				<Button size='lg'>Large</Button>
++				<Button disabled>Disabled</Button>
++			</section>
++
++			<section className='ep-flex ep-flex-wrap ep-items-center ep-gap-3'>
++				<Badge>Default</Badge>
++				<Badge variant='secondary'>Secondary</Badge>
++				<Badge variant='outline'>Outline</Badge>
++			</section>
++
++			<section className='ep-flex ep-items-center ep-gap-4'>
++				<Avatar>
++					<AvatarImage src='/avatar.png' alt='avatar' />
++					<AvatarFallback>EP</AvatarFallback>
++				</Avatar>
++				<div className='ep-flex ep-items-center ep-gap-2'>
++					<Checkbox id='terms' />
++					<Label htmlFor='terms'>Accept terms</Label>
++				</div>
++				<Skeleton className='ep-h-10 ep-w-32' />
++			</section>
++
++			<Separator />
++
++			<Card className='ep-max-w-md'>
++				<CardHeader>
++					<CardTitle>Card title</CardTitle>
++					<CardDescription>Card description sampled from the mockup layout.</CardDescription>
++				</CardHeader>
++				<CardContent>
++					<ShowcaseForm />
++				</CardContent>
++				<CardFooter>
++					<Button variant='outline'>Cancel</Button>
++				</CardFooter>
++			</Card>
++
++			<section className='ep-flex ep-items-center ep-gap-4'>
++				<Dialog>
++					<DialogTrigger asChild>
++						<Button variant='outline'>Open dialog</Button>
++					</DialogTrigger>
++					<DialogContent>
++						<DialogHeader>
++							<DialogTitle>Dialog title</DialogTitle>
++							<DialogDescription>Dialog description.</DialogDescription>
++						</DialogHeader>
++					</DialogContent>
++				</Dialog>
++
++				<DropdownMenu>
++					<DropdownMenuTrigger asChild>
++						<Button variant='outline'>Open menu</Button>
++					</DropdownMenuTrigger>
++					<DropdownMenuContent>
++						<DropdownMenuItem>Item one</DropdownMenuItem>
++						<DropdownMenuItem>Item two</DropdownMenuItem>
++					</DropdownMenuContent>
++				</DropdownMenu>
++
++				<Tooltip>
++					<TooltipTrigger asChild>
++						<Button variant='ghost'>Hover me</Button>
++					</TooltipTrigger>
++					<TooltipContent>Tooltip content</TooltipContent>
++				</Tooltip>
++			</section>
++
++			<Tabs defaultValue='one' className='ep-max-w-md'>
++				<TabsList>
++					<TabsTrigger value='one'>Tab one</TabsTrigger>
++					<TabsTrigger value='two'>Tab two</TabsTrigger>
++				</TabsList>
++				<TabsContent value='one'>Tab one content</TabsContent>
++				<TabsContent value='two'>Tab two content</TabsContent>
++			</Tabs>
++
++			<ScrollArea className='ep-h-32 ep-max-w-md ep-rounded-md ep-border ep-border-stroke-extra-light ep-p-4'>
++				{Array.from({ length: 20 }, (_, i) => (
++					<p key={i} className='ep-text-p1'>
++						Scrollable row {i + 1}
++					</p>
++				))}
++			</ScrollArea>
++		</div>
++	</TooltipProvider>
++);
++
++export default UiShowcase;
+diff --git a/apps/meteor/client/components/ui/avatar.tsx b/apps/meteor/client/components/ui/avatar.tsx
+new file mode 100644
+index 0000000..8e16643
+--- /dev/null
++++ b/apps/meteor/client/components/ui/avatar.tsx
+@@ -0,0 +1,35 @@
++import * as AvatarPrimitive from '@radix-ui/react-avatar';
++import type { ComponentPropsWithoutRef, ElementRef } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Avatar = forwardRef<ElementRef<typeof AvatarPrimitive.Root>, ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>>(
++	({ className, ...props }, ref) => (
++		<AvatarPrimitive.Root
++			ref={ref}
++			className={cn('ep-relative ep-flex ep-h-10 ep-w-10 ep-shrink-0 ep-overflow-hidden ep-rounded-full', className)}
++			{...props}
++		/>
++	),
++);
++Avatar.displayName = AvatarPrimitive.Root.displayName;
++
++export const AvatarImage = forwardRef<ElementRef<typeof AvatarPrimitive.Image>, ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>>(
++	({ className, ...props }, ref) => (
++		<AvatarPrimitive.Image ref={ref} className={cn('ep-aspect-square ep-h-full ep-w-full', className)} {...props} />
++	),
++);
++AvatarImage.displayName = AvatarPrimitive.Image.displayName;
++
++export const AvatarFallback = forwardRef<
++	ElementRef<typeof AvatarPrimitive.Fallback>,
++	ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
++>(({ className, ...props }, ref) => (
++	<AvatarPrimitive.Fallback
++		ref={ref}
++		className={cn('ep-flex ep-h-full ep-w-full ep-items-center ep-justify-center ep-rounded-full ep-bg-surface-tint ep-text-c1 ep-font-medium ep-text-font-default', className)}
++		{...props}
++	/>
++));
++AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
+diff --git a/apps/meteor/client/components/ui/badge.tsx b/apps/meteor/client/components/ui/badge.tsx
+new file mode 100644
+index 0000000..7ede25e
+--- /dev/null
++++ b/apps/meteor/client/components/ui/badge.tsx
+@@ -0,0 +1,26 @@
++import { cva, type VariantProps } from 'class-variance-authority';
++import type { HTMLAttributes } from 'react';
++
++import { cn } from '../../lib/utils';
++
++const badgeVariants = cva(
++	'ep-inline-flex ep-items-center ep-rounded-full ep-border ep-px-2.5 ep-py-0.5 ep-text-c1 ep-font-medium ep-transition-colors focus:ep-outline-none focus:ep-ring-2 focus:ep-ring-brand-500 focus:ep-ring-offset-2',
++	{
++		variants: {
++			variant: {
++				default: 'ep-border-transparent ep-bg-brand-600 ep-text-font-on-primary',
++				secondary: 'ep-border-transparent ep-bg-surface-tint ep-text-font-default',
++				outline: 'ep-border-stroke-light ep-text-font-default',
++			},
++		},
++		defaultVariants: {
++			variant: 'default',
++		},
++	},
++);
++
++export type BadgeProps = HTMLAttributes<HTMLDivElement> & VariantProps<typeof badgeVariants>;
++
++export const Badge = ({ className, variant, ...props }: BadgeProps) => (
++	<div className={cn(badgeVariants({ variant }), className)} {...props} />
++);
+diff --git a/apps/meteor/client/components/ui/button.tsx b/apps/meteor/client/components/ui/button.tsx
+new file mode 100644
+index 0000000..3070a95
+--- /dev/null
++++ b/apps/meteor/client/components/ui/button.tsx
+@@ -0,0 +1,43 @@
++import { Slot } from '@radix-ui/react-slot';
++import { cva, type VariantProps } from 'class-variance-authority';
++import type { ButtonHTMLAttributes } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++const buttonVariants = cva(
++	'ep-inline-flex ep-items-center ep-justify-center ep-gap-2 ep-whitespace-nowrap ep-rounded-md ep-text-p1 ep-font-medium ep-transition-colors focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 focus-visible:ep-ring-offset-2 disabled:ep-pointer-events-none disabled:ep-opacity-50',
++	{
++		variants: {
++			variant: {
++				default: 'ep-bg-brand-600 ep-text-font-on-primary hover:ep-bg-brand-700',
++				outline: 'ep-border ep-border-stroke-light ep-bg-transparent hover:ep-bg-surface-tint',
++				ghost: 'hover:ep-bg-surface-tint',
++				link: 'ep-text-brand-600 ep-underline-offset-4 hover:ep-underline',
++			},
++			size: {
++				default: 'ep-h-10 ep-px-4 ep-py-2',
++				sm: 'ep-h-9 ep-rounded-sm ep-px-3',
++				lg: 'ep-h-11 ep-rounded-md ep-px-8',
++				icon: 'ep-h-10 ep-w-10',
++			},
++		},
++		defaultVariants: {
++			variant: 'default',
++			size: 'default',
++		},
++	},
++);
++
++export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
++	VariantProps<typeof buttonVariants> & {
++		asChild?: boolean;
++	};
++
++export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant, size, asChild = false, ...props }, ref) => {
++	const Comp = asChild ? Slot : 'button';
++	return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
++});
++Button.displayName = 'Button';
++
++export { buttonVariants };
+diff --git a/apps/meteor/client/components/ui/card.tsx b/apps/meteor/client/components/ui/card.tsx
+new file mode 100644
+index 0000000..c5d1fc6
+--- /dev/null
++++ b/apps/meteor/client/components/ui/card.tsx
+@@ -0,0 +1,40 @@
++import type { HTMLAttributes } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
++	<div
++		ref={ref}
++		className={cn('ep-rounded-lg ep-border ep-border-stroke-extra-light ep-bg-surface-neutral ep-shadow-sm', className)}
++		{...props}
++	/>
++));
++Card.displayName = 'Card';
++
++export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
++	<div ref={ref} className={cn('ep-flex ep-flex-col ep-gap-1.5 ep-p-6', className)} {...props} />
++));
++CardHeader.displayName = 'CardHeader';
++
++export const CardTitle = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLHeadingElement>>(({ className, ...props }, ref) => (
++	<h3 ref={ref} className={cn('ep-font-heading ep-text-h2 ep-text-font-default', className)} {...props} />
++));
++CardTitle.displayName = 'CardTitle';
++
++export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
++	({ className, ...props }, ref) => (
++		<p ref={ref} className={cn('ep-text-p1 ep-text-font-secondary', className)} {...props} />
++	),
++);
++CardDescription.displayName = 'CardDescription';
++
++export const CardContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
++	<div ref={ref} className={cn('ep-p-6 ep-pt-0', className)} {...props} />
++));
++CardContent.displayName = 'CardContent';
++
++export const CardFooter = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
++	<div ref={ref} className={cn('ep-flex ep-items-center ep-p-6 ep-pt-0', className)} {...props} />
++));
++CardFooter.displayName = 'CardFooter';
+diff --git a/apps/meteor/client/components/ui/checkbox.tsx b/apps/meteor/client/components/ui/checkbox.tsx
+new file mode 100644
+index 0000000..4402371
+--- /dev/null
++++ b/apps/meteor/client/components/ui/checkbox.tsx
+@@ -0,0 +1,24 @@
++import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
++import { Check } from 'lucide-react';
++import type { ComponentPropsWithoutRef, ElementRef } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Checkbox = forwardRef<ElementRef<typeof CheckboxPrimitive.Root>, ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>>(
++	({ className, ...props }, ref) => (
++		<CheckboxPrimitive.Root
++			ref={ref}
++			className={cn(
++				'ep-peer ep-h-4 ep-w-4 ep-shrink-0 ep-rounded-sm ep-border ep-border-stroke-light ep-ring-offset-white focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-cursor-not-allowed disabled:ep-opacity-50 data-[state=checked]:ep-bg-brand-600 data-[state=checked]:ep-border-brand-600 data-[state=checked]:ep-text-font-on-primary',
++				className,
++			)}
++			{...props}
++		>
++			<CheckboxPrimitive.Indicator className={cn('ep-flex ep-items-center ep-justify-center ep-text-current')}>
++				<Check className='ep-h-3.5 ep-w-3.5' />
++			</CheckboxPrimitive.Indicator>
++		</CheckboxPrimitive.Root>
++	),
++);
++Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+diff --git a/apps/meteor/client/components/ui/dialog.tsx b/apps/meteor/client/components/ui/dialog.tsx
+new file mode 100644
+index 0000000..b55237e
+--- /dev/null
++++ b/apps/meteor/client/components/ui/dialog.tsx
+@@ -0,0 +1,73 @@
++import * as DialogPrimitive from '@radix-ui/react-dialog';
++import { X } from 'lucide-react';
++import type { ComponentPropsWithoutRef, ElementRef, HTMLAttributes } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Dialog = DialogPrimitive.Root;
++export const DialogTrigger = DialogPrimitive.Trigger;
++export const DialogPortal = DialogPrimitive.Portal;
++export const DialogClose = DialogPrimitive.Close;
++
++export const DialogOverlay = forwardRef<ElementRef<typeof DialogPrimitive.Overlay>, ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>>(
++	({ className, ...props }, ref) => (
++		<DialogPrimitive.Overlay
++			ref={ref}
++			className={cn(
++				'ep-fixed ep-inset-0 ep-z-50 ep-bg-surface-sidebar/60 data-[state=open]:ep-animate-in data-[state=closed]:ep-animate-out data-[state=closed]:ep-fade-out-0 data-[state=open]:ep-fade-in-0',
++				className,
++			)}
++			{...props}
++		/>
++	),
++);
++DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
++
++export const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, ComponentPropsWithoutRef<typeof DialogPrimitive.Content>>(
++	({ className, children, ...props }, ref) => (
++		<DialogPortal>
++			<DialogOverlay />
++			<DialogPrimitive.Content
++				ref={ref}
++				className={cn(
++					'ep-fixed ep-left-1/2 ep-top-1/2 ep-z-50 ep-w-full ep-max-w-lg -ep-translate-x-1/2 -ep-translate-y-1/2 ep-gap-4 ep-rounded-lg ep-border ep-border-stroke-extra-light ep-bg-surface-neutral ep-p-6 ep-shadow-md data-[state=open]:ep-animate-in data-[state=closed]:ep-animate-out data-[state=closed]:ep-fade-out-0 data-[state=open]:ep-fade-in-0 data-[state=closed]:ep-zoom-out-95 data-[state=open]:ep-zoom-in-95',
++					className,
++				)}
++				{...props}
++			>
++				{children}
++				<DialogPrimitive.Close className='ep-absolute ep-right-4 ep-top-4 ep-rounded-sm ep-opacity-70 ep-transition-opacity hover:ep-opacity-100 focus:ep-outline-none focus:ep-ring-2 focus:ep-ring-brand-500 disabled:ep-pointer-events-none'>
++					<X className='ep-h-4 ep-w-4' />
++					<span className='ep-sr-only'>Close</span>
++				</DialogPrimitive.Close>
++			</DialogPrimitive.Content>
++		</DialogPortal>
++	),
++);
++DialogContent.displayName = DialogPrimitive.Content.displayName;
++
++export const DialogHeader = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
++	<div className={cn('ep-flex ep-flex-col ep-gap-1.5 ep-text-center sm:ep-text-left', className)} {...props} />
++);
++DialogHeader.displayName = 'DialogHeader';
++
++export const DialogFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
++	<div className={cn('ep-flex ep-flex-col-reverse sm:ep-flex-row sm:ep-justify-end sm:ep-gap-2', className)} {...props} />
++);
++DialogFooter.displayName = 'DialogFooter';
++
++export const DialogTitle = forwardRef<ElementRef<typeof DialogPrimitive.Title>, ComponentPropsWithoutRef<typeof DialogPrimitive.Title>>(
++	({ className, ...props }, ref) => (
++		<DialogPrimitive.Title ref={ref} className={cn('ep-font-heading ep-text-h2 ep-text-font-default', className)} {...props} />
++	),
++);
++DialogTitle.displayName = DialogPrimitive.Title.displayName;
++
++export const DialogDescription = forwardRef<
++	ElementRef<typeof DialogPrimitive.Description>,
++	ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
++>(({ className, ...props }, ref) => (
++	<DialogPrimitive.Description ref={ref} className={cn('ep-text-p1 ep-text-font-secondary', className)} {...props} />
++));
++DialogDescription.displayName = DialogPrimitive.Description.displayName;
+diff --git a/apps/meteor/client/components/ui/dropdown-menu.tsx b/apps/meteor/client/components/ui/dropdown-menu.tsx
+new file mode 100644
+index 0000000..840f159
+--- /dev/null
++++ b/apps/meteor/client/components/ui/dropdown-menu.tsx
+@@ -0,0 +1,151 @@
++import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
++import { Check, ChevronRight, Circle } from 'lucide-react';
++import type { ComponentPropsWithoutRef, ElementRef, HTMLAttributes } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const DropdownMenu = DropdownMenuPrimitive.Root;
++export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
++export const DropdownMenuGroup = DropdownMenuPrimitive.Group;
++export const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
++export const DropdownMenuSub = DropdownMenuPrimitive.Sub;
++export const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
++
++export const DropdownMenuSubTrigger = forwardRef<
++	ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
++	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & { inset?: boolean }
++>(({ className, inset, children, ...props }, ref) => (
++	<DropdownMenuPrimitive.SubTrigger
++		ref={ref}
++		className={cn(
++			'ep-flex ep-cursor-default ep-select-none ep-items-center ep-rounded-sm ep-px-2 ep-py-1.5 ep-text-p1 ep-outline-none focus:ep-bg-surface-tint data-[state=open]:ep-bg-surface-tint',
++			inset && 'ep-pl-8',
++			className,
++		)}
++		{...props}
++	>
++		{children}
++		<ChevronRight className='ep-ml-auto ep-h-4 ep-w-4' />
++	</DropdownMenuPrimitive.SubTrigger>
++));
++DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName;
++
++export const DropdownMenuSubContent = forwardRef<
++	ElementRef<typeof DropdownMenuPrimitive.SubContent>,
++	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
++>(({ className, ...props }, ref) => (
++	<DropdownMenuPrimitive.SubContent
++		ref={ref}
++		className={cn(
++			'ep-z-50 ep-min-w-[8rem] ep-overflow-hidden ep-rounded-md ep-border ep-border-stroke-extra-light ep-bg-surface-neutral ep-p-1 ep-shadow-md',
++			className,
++		)}
++		{...props}
++	/>
++));
++DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayName;
++
++export const DropdownMenuContent = forwardRef<
++	ElementRef<typeof DropdownMenuPrimitive.Content>,
++	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
++>(({ className, sideOffset = 4, ...props }, ref) => (
++	<DropdownMenuPrimitive.Portal>
++		<DropdownMenuPrimitive.Content
++			ref={ref}
++			sideOffset={sideOffset}
++			className={cn(
++				'ep-z-50 ep-min-w-[8rem] ep-overflow-hidden ep-rounded-md ep-border ep-border-stroke-extra-light ep-bg-surface-neutral ep-p-1 ep-text-font-default ep-shadow-md',
++				className,
++			)}
++			{...props}
++		/>
++	</DropdownMenuPrimitive.Portal>
++));
++DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
++
++export const DropdownMenuItem = forwardRef<
++	ElementRef<typeof DropdownMenuPrimitive.Item>,
++	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & { inset?: boolean }
++>(({ className, inset, ...props }, ref) => (
++	<DropdownMenuPrimitive.Item
++		ref={ref}
++		className={cn(
++			'ep-relative ep-flex ep-cursor-default ep-select-none ep-items-center ep-rounded-sm ep-px-2 ep-py-1.5 ep-text-p1 ep-outline-none ep-transition-colors focus:ep-bg-surface-tint data-[disabled]:ep-pointer-events-none data-[disabled]:ep-opacity-50',
++			inset && 'ep-pl-8',
++			className,
++		)}
++		{...props}
++	/>
++));
++DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
++
++export const DropdownMenuCheckboxItem = forwardRef<
++	ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,
++	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
++>(({ className, children, checked, ...props }, ref) => (
++	<DropdownMenuPrimitive.CheckboxItem
++		ref={ref}
++		className={cn(
++			'ep-relative ep-flex ep-cursor-default ep-select-none ep-items-center ep-rounded-sm ep-py-1.5 ep-pl-8 ep-pr-2 ep-text-p1 ep-outline-none ep-transition-colors focus:ep-bg-surface-tint data-[disabled]:ep-pointer-events-none data-[disabled]:ep-opacity-50',
++			className,
++		)}
++		checked={checked}
++		{...props}
++	>
++		<span className='ep-absolute ep-left-2 ep-flex ep-h-3.5 ep-w-3.5 ep-items-center ep-justify-center'>
++			<DropdownMenuPrimitive.ItemIndicator>
++				<Check className='ep-h-4 ep-w-4' />
++			</DropdownMenuPrimitive.ItemIndicator>
++		</span>
++		{children}
++	</DropdownMenuPrimitive.CheckboxItem>
++));
++DropdownMenuCheckboxItem.displayName = DropdownMenuPrimitive.CheckboxItem.displayName;
++
++export const DropdownMenuRadioItem = forwardRef<
++	ElementRef<typeof DropdownMenuPrimitive.RadioItem>,
++	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem>
++>(({ className, children, ...props }, ref) => (
++	<DropdownMenuPrimitive.RadioItem
++		ref={ref}
++		className={cn(
++			'ep-relative ep-flex ep-cursor-default ep-select-none ep-items-center ep-rounded-sm ep-py-1.5 ep-pl-8 ep-pr-2 ep-text-p1 ep-outline-none ep-transition-colors focus:ep-bg-surface-tint data-[disabled]:ep-pointer-events-none data-[disabled]:ep-opacity-50',
++			className,
++		)}
++		{...props}
++	>
++		<span className='ep-absolute ep-left-2 ep-flex ep-h-3.5 ep-w-3.5 ep-items-center ep-justify-center'>
++			<DropdownMenuPrimitive.ItemIndicator>
++				<Circle className='ep-h-2 ep-w-2 ep-fill-current' />
++			</DropdownMenuPrimitive.ItemIndicator>
++		</span>
++		{children}
++	</DropdownMenuPrimitive.RadioItem>
++));
++DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName;
++
++export const DropdownMenuLabel = forwardRef<
++	ElementRef<typeof DropdownMenuPrimitive.Label>,
++	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> & { inset?: boolean }
++>(({ className, inset, ...props }, ref) => (
++	<DropdownMenuPrimitive.Label
++		ref={ref}
++		className={cn('ep-px-2 ep-py-1.5 ep-text-c1 ep-font-semibold', inset && 'ep-pl-8', className)}
++		{...props}
++	/>
++));
++DropdownMenuLabel.displayName = DropdownMenuPrimitive.Label.displayName;
++
++export const DropdownMenuSeparator = forwardRef<
++	ElementRef<typeof DropdownMenuPrimitive.Separator>,
++	ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>
++>(({ className, ...props }, ref) => (
++	<DropdownMenuPrimitive.Separator ref={ref} className={cn('ep-my-1 ep-h-px ep-bg-stroke-extra-light', className)} {...props} />
++));
++DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
++
++export const DropdownMenuShortcut = ({ className, ...props }: HTMLAttributes<HTMLSpanElement>) => (
++	<span className={cn('ep-ml-auto ep-text-c1 ep-tracking-widest ep-opacity-60', className)} {...props} />
++);
++DropdownMenuShortcut.displayName = 'DropdownMenuShortcut';
+diff --git a/apps/meteor/client/components/ui/form.tsx b/apps/meteor/client/components/ui/form.tsx
+new file mode 100644
+index 0000000..a920bff
+--- /dev/null
++++ b/apps/meteor/client/components/ui/form.tsx
+@@ -0,0 +1,109 @@
++import * as LabelPrimitive from '@radix-ui/react-label';
++import { Slot } from '@radix-ui/react-slot';
++import type { ComponentPropsWithoutRef, ElementRef, HTMLAttributes } from 'react';
++import { createContext, forwardRef, useContext, useId } from 'react';
++import type { ControllerProps, FieldPath, FieldValues } from 'react-hook-form';
++import { Controller, FormProvider, useFormContext } from 'react-hook-form';
++
++import { cn } from '../../lib/utils';
++import { Label } from './label';
++
++export const Form = FormProvider;
++
++type FormFieldContextValue<TFieldValues extends FieldValues = FieldValues, TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>> = {
++	name: TName;
++};
++
++const FormFieldContext = createContext<FormFieldContextValue>({} as FormFieldContextValue);
++
++export const FormField = <TFieldValues extends FieldValues = FieldValues, TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>>({
++	...props
++}: ControllerProps<TFieldValues, TName>) => (
++	<FormFieldContext.Provider value={{ name: props.name }}>
++		<Controller {...props} />
++	</FormFieldContext.Provider>
++);
++
++type FormItemContextValue = {
++	id: string;
++};
++
++const FormItemContext = createContext<FormItemContextValue>({} as FormItemContextValue);
++
++const useFormField = () => {
++	const fieldContext = useContext(FormFieldContext);
++	const itemContext = useContext(FormItemContext);
++	const { getFieldState, formState } = useFormContext();
++
++	const fieldState = getFieldState(fieldContext.name, formState);
++
++	const { id } = itemContext;
++
++	return {
++		id,
++		name: fieldContext.name,
++		formItemId: `${id}-form-item`,
++		formDescriptionId: `${id}-form-item-description`,
++		formMessageId: `${id}-form-item-message`,
++		...fieldState,
++	};
++};
++
++export const FormItem = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => {
++	const id = useId();
++	return (
++		<FormItemContext.Provider value={{ id }}>
++			<div ref={ref} className={cn('ep-flex ep-flex-col ep-gap-2', className)} {...props} />
++		</FormItemContext.Provider>
++	);
++});
++FormItem.displayName = 'FormItem';
++
++export const FormLabel = forwardRef<ElementRef<typeof LabelPrimitive.Root>, ComponentPropsWithoutRef<typeof LabelPrimitive.Root>>(
++	({ className, ...props }, ref) => {
++		const { error, formItemId } = useFormField();
++		// red-600 is Tailwind's stock palette, not an Eprisi token: tokens.json
++		// has no sampled danger color (mockups show no error state), so this
++		// falls back to a default rather than inventing a brand value.
++		return <Label ref={ref} className={cn(error && 'ep-text-red-600', className)} htmlFor={formItemId} {...props} />;
++	},
++);
++FormLabel.displayName = 'FormLabel';
++
++export const FormControl = forwardRef<ElementRef<typeof Slot>, ComponentPropsWithoutRef<typeof Slot>>(({ ...props }, ref) => {
++	const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
++	return (
++		<Slot
++			ref={ref}
++			id={formItemId}
++			aria-describedby={!error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`}
++			aria-invalid={!!error}
++			{...props}
++		/>
++	);
++});
++FormControl.displayName = 'FormControl';
++
++export const FormDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
++	({ className, ...props }, ref) => {
++		const { formDescriptionId } = useFormField();
++		return <p ref={ref} id={formDescriptionId} className={cn('ep-text-c1 ep-text-font-secondary', className)} {...props} />;
++	},
++);
++FormDescription.displayName = 'FormDescription';
++
++export const FormMessage = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
++	({ className, children, ...props }, ref) => {
++		const { error, formMessageId } = useFormField();
++		const body = error ? String(error?.message ?? '') : children;
++		if (!body) {
++			return null;
++		}
++		return (
++			<p ref={ref} id={formMessageId} role='alert' aria-live='polite' className={cn('ep-text-c1 ep-font-medium ep-text-red-600', className)} {...props}>
++				{body}
++			</p>
++		);
++	},
++);
++FormMessage.displayName = 'FormMessage';
+diff --git a/apps/meteor/client/components/ui/input.tsx b/apps/meteor/client/components/ui/input.tsx
+new file mode 100644
+index 0000000..55f3e22
+--- /dev/null
++++ b/apps/meteor/client/components/ui/input.tsx
+@@ -0,0 +1,19 @@
++import type { InputHTMLAttributes } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export type InputProps = InputHTMLAttributes<HTMLInputElement>;
++
++export const Input = forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => (
++	<input
++		type={type}
++		className={cn(
++			'ep-flex ep-h-10 ep-w-full ep-rounded-sm ep-border ep-border-transparent ep-bg-surface-tint ep-px-3 ep-py-2 ep-text-p1 ep-text-font-default placeholder:ep-text-font-secondary focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-cursor-not-allowed disabled:ep-opacity-50',
++			className,
++		)}
++		ref={ref}
++		{...props}
++	/>
++));
++Input.displayName = 'Input';
+diff --git a/apps/meteor/client/components/ui/label.tsx b/apps/meteor/client/components/ui/label.tsx
+new file mode 100644
+index 0000000..16537e8
+--- /dev/null
++++ b/apps/meteor/client/components/ui/label.tsx
+@@ -0,0 +1,15 @@
++import * as LabelPrimitive from '@radix-ui/react-label';
++import { cva, type VariantProps } from 'class-variance-authority';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++const labelVariants = cva(
++	'ep-text-c1 ep-font-medium ep-leading-none ep-text-font-default peer-disabled:ep-cursor-not-allowed peer-disabled:ep-opacity-70',
++);
++
++export const Label = forwardRef<
++	React.ElementRef<typeof LabelPrimitive.Root>,
++	React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & VariantProps<typeof labelVariants>
++>(({ className, ...props }, ref) => <LabelPrimitive.Root ref={ref} className={cn(labelVariants(), className)} {...props} />);
++Label.displayName = LabelPrimitive.Root.displayName;
+diff --git a/apps/meteor/client/components/ui/scroll-area.tsx b/apps/meteor/client/components/ui/scroll-area.tsx
+new file mode 100644
+index 0000000..8774ecb
+--- /dev/null
++++ b/apps/meteor/client/components/ui/scroll-area.tsx
+@@ -0,0 +1,37 @@
++import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
++import type { ComponentPropsWithoutRef, ElementRef } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const ScrollArea = forwardRef<
++	ElementRef<typeof ScrollAreaPrimitive.Root>,
++	ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
++>(({ className, children, ...props }, ref) => (
++	<ScrollAreaPrimitive.Root ref={ref} className={cn('ep-relative ep-overflow-hidden', className)} {...props}>
++		<ScrollAreaPrimitive.Viewport className='ep-h-full ep-w-full ep-rounded-[inherit]'>{children}</ScrollAreaPrimitive.Viewport>
++		<ScrollBar />
++		<ScrollAreaPrimitive.Corner />
++	</ScrollAreaPrimitive.Root>
++));
++ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName;
++
++export const ScrollBar = forwardRef<
++	ElementRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>,
++	ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>
++>(({ className, orientation = 'vertical', ...props }, ref) => (
++	<ScrollAreaPrimitive.ScrollAreaScrollbar
++		ref={ref}
++		orientation={orientation}
++		className={cn(
++			'ep-flex ep-touch-none ep-select-none ep-transition-colors',
++			orientation === 'vertical' && 'ep-h-full ep-w-2.5 ep-border-l ep-border-l-transparent ep-p-px',
++			orientation === 'horizontal' && 'ep-h-2.5 ep-flex-col ep-border-t ep-border-t-transparent ep-p-px',
++			className,
++		)}
++		{...props}
++	>
++		<ScrollAreaPrimitive.ScrollAreaThumb className='ep-relative ep-flex-1 ep-rounded-full ep-bg-stroke-light' />
++	</ScrollAreaPrimitive.ScrollAreaScrollbar>
++));
++ScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName;
+diff --git a/apps/meteor/client/components/ui/separator.tsx b/apps/meteor/client/components/ui/separator.tsx
+new file mode 100644
+index 0000000..2c4a0d5
+--- /dev/null
++++ b/apps/meteor/client/components/ui/separator.tsx
+@@ -0,0 +1,23 @@
++import * as SeparatorPrimitive from '@radix-ui/react-separator';
++import type { ComponentPropsWithoutRef, ElementRef } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Separator = forwardRef<
++	ElementRef<typeof SeparatorPrimitive.Root>,
++	ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
++>(({ className, orientation = 'horizontal', decorative = true, ...props }, ref) => (
++	<SeparatorPrimitive.Root
++		ref={ref}
++		decorative={decorative}
++		orientation={orientation}
++		className={cn(
++			'ep-shrink-0 ep-bg-stroke-extra-light',
++			orientation === 'horizontal' ? 'ep-h-px ep-w-full' : 'ep-h-full ep-w-px',
++			className,
++		)}
++		{...props}
++	/>
++));
++Separator.displayName = SeparatorPrimitive.Root.displayName;
+diff --git a/apps/meteor/client/components/ui/skeleton.tsx b/apps/meteor/client/components/ui/skeleton.tsx
+new file mode 100644
+index 0000000..62f485d
+--- /dev/null
++++ b/apps/meteor/client/components/ui/skeleton.tsx
+@@ -0,0 +1,7 @@
++import type { HTMLAttributes } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Skeleton = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
++	<div className={cn('ep-animate-pulse ep-rounded-md ep-bg-surface-tint', className)} {...props} />
++);
+diff --git a/apps/meteor/client/components/ui/tabs.tsx b/apps/meteor/client/components/ui/tabs.tsx
+new file mode 100644
+index 0000000..3d59d0d
+--- /dev/null
++++ b/apps/meteor/client/components/ui/tabs.tsx
+@@ -0,0 +1,49 @@
++import * as TabsPrimitive from '@radix-ui/react-tabs';
++import type { ComponentPropsWithoutRef, ElementRef } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const Tabs = TabsPrimitive.Root;
++
++export const TabsList = forwardRef<ElementRef<typeof TabsPrimitive.List>, ComponentPropsWithoutRef<typeof TabsPrimitive.List>>(
++	({ className, ...props }, ref) => (
++		<TabsPrimitive.List
++			ref={ref}
++			className={cn(
++				'ep-inline-flex ep-h-10 ep-items-center ep-justify-center ep-rounded-md ep-bg-surface-tint ep-p-1 ep-text-font-secondary',
++				className,
++			)}
++			{...props}
++		/>
++	),
++);
++TabsList.displayName = TabsPrimitive.List.displayName;
++
++export const TabsTrigger = forwardRef<ElementRef<typeof TabsPrimitive.Trigger>, ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>>(
++	({ className, ...props }, ref) => (
++		<TabsPrimitive.Trigger
++			ref={ref}
++			className={cn(
++				'ep-inline-flex ep-items-center ep-justify-center ep-whitespace-nowrap ep-rounded-sm ep-px-3 ep-py-1.5 ep-text-p1 ep-font-medium ep-ring-offset-white ep-transition-all focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500 disabled:ep-pointer-events-none disabled:ep-opacity-50 data-[state=active]:ep-bg-surface-neutral data-[state=active]:ep-text-font-default data-[state=active]:ep-shadow-sm',
++				className,
++			)}
++			{...props}
++		/>
++	),
++);
++TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
++
++export const TabsContent = forwardRef<ElementRef<typeof TabsPrimitive.Content>, ComponentPropsWithoutRef<typeof TabsPrimitive.Content>>(
++	({ className, ...props }, ref) => (
++		<TabsPrimitive.Content
++			ref={ref}
++			className={cn(
++				'ep-mt-2 ep-ring-offset-white focus-visible:ep-outline-none focus-visible:ep-ring-2 focus-visible:ep-ring-brand-500',
++				className,
++			)}
++			{...props}
++		/>
++	),
++);
++TabsContent.displayName = TabsPrimitive.Content.displayName;
+diff --git a/apps/meteor/client/components/ui/tooltip.tsx b/apps/meteor/client/components/ui/tooltip.tsx
+new file mode 100644
+index 0000000..2128a15
+--- /dev/null
++++ b/apps/meteor/client/components/ui/tooltip.tsx
+@@ -0,0 +1,24 @@
++import * as TooltipPrimitive from '@radix-ui/react-tooltip';
++import type { ComponentPropsWithoutRef, ElementRef } from 'react';
++import { forwardRef } from 'react';
++
++import { cn } from '../../lib/utils';
++
++export const TooltipProvider = TooltipPrimitive.Provider;
++export const Tooltip = TooltipPrimitive.Root;
++export const TooltipTrigger = TooltipPrimitive.Trigger;
++
++export const TooltipContent = forwardRef<ElementRef<typeof TooltipPrimitive.Content>, ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>>(
++	({ className, sideOffset = 4, ...props }, ref) => (
++		<TooltipPrimitive.Content
++			ref={ref}
++			sideOffset={sideOffset}
++			className={cn(
++				'ep-z-50 ep-overflow-hidden ep-rounded-sm ep-bg-surface-sidebar ep-px-3 ep-py-1.5 ep-text-c1 ep-text-font-on-primary ep-shadow-md ep-animate-in ep-fade-in-0 ep-zoom-in-95 data-[state=closed]:ep-animate-out data-[state=closed]:ep-fade-out-0 data-[state=closed]:ep-zoom-out-95',
++				className,
++			)}
++			{...props}
++		/>
++	),
++);
++TooltipContent.displayName = TooltipPrimitive.Content.displayName;
+diff --git a/apps/meteor/client/lib/utils.ts b/apps/meteor/client/lib/utils.ts
+new file mode 100644
+index 0000000..94b1e34
+--- /dev/null
++++ b/apps/meteor/client/lib/utils.ts
+@@ -0,0 +1,6 @@
++import { type ClassValue, clsx } from 'clsx';
++import { twMerge } from 'tailwind-merge';
++
++export function cn(...inputs: ClassValue[]): string {
++	return twMerge(clsx(inputs));
++}
+-- 
+2.50.1 (Apple Git-155)
+

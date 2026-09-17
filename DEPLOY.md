@@ -68,14 +68,24 @@ grace period. This is **not a wrapper bug**: reproduced by calling `chat.sendMes
 against the RC container via plain `curl`, bypassing the wrapper entirely, and getting the
 identical error.
 
-This surfaced during GATE 8's local container test because this specific dev machine's network
-cannot reach `cloud.rocket.chat` over HTTPS at all (confirmed: `curl https://cloud.rocket.chat`
-hangs/fails from the host itself, while general internet access works fine) — so a brand-new,
-never-registered container never clears the restriction. **This is a real production risk to
-verify, not just a local sandbox artifact**: confirm the actual Dokploy VPS has working outbound
-HTTPS to `cloud.rocket.chat` before relying on message-sending working, and treat any future
-sustained loss of that connectivity as something that will eventually break sending, not just an
-inert warning.
+This surfaced twice during GATE 8's local container testing, with two different root causes for
+the *same* symptom — worth telling apart:
+
+- **First run**: this dev machine's network couldn't reach `cloud.rocket.chat` over HTTPS at all
+  (`curl https://cloud.rocket.chat` hung/failed from the host itself, while general internet access
+  worked fine).
+- **Second run** (re-test): RC's own log showed the real reason instead of a generic hang —
+  `FetchError: request to https://collector.rocket.chat/ failed, reason: certificate has expired`
+  (`CERT_HAS_EXPIRED`). This sandbox's system clock is set to a date substantially in the future
+  relative to when this was built, which puts it past the validity window of certs that were
+  otherwise fine — an artifact of the **test environment's clock**, not a real network block.
+
+Both point at the same underlying dependency though: **a brand-new or long-disconnected Rocket.Chat
+container needs successful outbound HTTPS to Rocket.Chat's cloud/collector endpoints (with a
+correct system clock) before `chat.sendMessage` and similar actions will work at all.** On a real
+Dokploy VPS running with accurate wall-clock time and normal outbound internet, this should simply
+not trigger — but confirm it once after first deploy rather than assuming so, since the failure
+mode (a silent `restricted-workspace` REST error, not a startup crash) is easy to miss.
 
 ## End-to-end test performed (this session, real containers)
 
@@ -100,6 +110,11 @@ verified via a real headless browser hitting the wrapper's exposed port:
   that result stands; only re-confirming it in *this specific fresh container* was blocked by an
   unrelated local network limitation.
 
-**Recommendation**: re-run this same container test from a network with working access to
-`cloud.rocket.chat` (the actual Dokploy VPS is the natural place) before considering GATE 8 fully
+This whole container stack (build → compose up → login → navigate → history load) was re-run a
+second time after the initial GATE 8 pass (same result on message-sending, more precise root cause
+found the second time) — everything except sending was reconfirmed working identically.
+
+**Recommendation**: re-run this same container test from a machine with accurate wall-clock time
+and working access to `cloud.rocket.chat`/`collector.rocket.chat` (the actual Dokploy VPS is the
+natural place) before considering GATE 8 fully
 closed on messaging specifically — everything else above is already confirmed.

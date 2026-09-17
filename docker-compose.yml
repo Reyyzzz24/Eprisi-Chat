@@ -1,0 +1,126 @@
+# GATE 8 — production compose. This is the ACTUAL compose currently running
+# on Dokploy for private-chat.eprisi.com (rocketchat + rocketchat-mongo +
+# rocketchat-mongo-init), pasted by the user, with the minimal changes
+# WRAPPER_PROMPT.md GATE 8 calls for:
+#   1. `rocketchat` image pinned to 8.8.1 (was `latest`) — this is the exact
+#      version every spike in spike/RESULTS.md and this whole project was
+#      tested against; pinning to anything else would silently invalidate
+#      those results.
+#   2. Added a healthcheck to `rocketchat` (mongo/mongo-init already had
+#      one; only `rocketchat` itself was missing it).
+#   3. Added the new `eprisi-chat-web` service.
+# Nothing else changed: mongo/mongo-init, volumes, and the two networks are
+# untouched, per the explicit "jangan ubah volume/network yang sudah ada"
+# rule.
+#
+# No `ACCOUNTS_TwoFactorAuthentication_*` or other extra rocketchat env vars
+# were added — no spike in this project concluded one was required
+# (WRAPPER_PROMPT.md GATE 8 step 2 says only add these "hanya bila spike
+# menuntut").
+
+services:
+  rocketchat-mongo:
+    image: mongo:7.0
+    restart: unless-stopped
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - rocketchat_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rocketchat-internal
+
+  # One-shot container: initializes the replica set, then exits on its own.
+  rocketchat-mongo-init:
+    image: mongo:7.0
+    restart: "no"
+    depends_on:
+      rocketchat-mongo:
+        condition: service_healthy
+    command: >
+      mongosh --host rocketchat-mongo:27017 --quiet --eval
+      "try { rs.status() } catch(e) { rs.initiate({_id:'rs0',members:[{_id:0,host:'rocketchat-mongo:27017'}]}) }"
+    networks:
+      - rocketchat-internal
+
+  rocketchat:
+    image: rocketchat/rocket.chat:8.8.1
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      rocketchat-mongo:
+        condition: service_healthy
+      rocketchat-mongo-init:
+        condition: service_completed_successfully
+    environment:
+      ROOT_URL: https://private-chat.eprisi.com
+      PORT: "3000"
+      MONGO_URL: "mongodb://rocketchat-mongo:27017/rocketchat?replicaSet=rs0"
+      MONGO_OPLOG_URL: "mongodb://rocketchat-mongo:27017/local?replicaSet=rs0"
+      DEPLOY_METHOD: docker
+      # Only needed if the GATE 1/GATE 4 Keycloak SSO path (option (a)) is
+      # actually turned on — see SECURITY.md's threat model for this value.
+      # Leave unset to keep SSO disabled; password login is unaffected
+      # either way. Must match eprisi-chat-web's own value byte-for-byte.
+      CREATE_TOKENS_FOR_USERS_SECRET: ${CREATE_TOKENS_FOR_USERS_SECRET:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/info | grep -q '\"success\":true' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - rocketchat-internal
+      - dokploy-network
+
+  eprisi-chat-web:
+    image: ghcr.io/reyyzzz24/eprisi-chat-web:${EPRISI_CHAT_WEB_TAG:-latest}
+    platform: linux/amd64
+    restart: unless-stopped
+    depends_on:
+      rocketchat:
+        condition: service_healthy
+    environment:
+      # Server-side only, internal docker network address — see
+      # lib/rc/config.ts. Never exposed to the browser.
+      RC_INTERNAL_URL: "http://rocketchat:3000"
+      # Client-side (NEXT_PUBLIC_*) — baked in at BUILD time (see the
+      # Dockerfile's ARG/ENV for these two), listed here too since Next
+      # also reads them at runtime for server-rendered pages.
+      NEXT_PUBLIC_RC_WS_URL: "wss://private-chat.eprisi.com/websocket"
+      NEXT_PUBLIC_RC_PUBLIC_URL: "https://private-chat.eprisi.com"
+      SESSION_SECRET: ${SESSION_SECRET}
+      NEXTAUTH_URL: "https://chat.eprisi.com"
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
+      # Keycloak SSO — all three empty disables the "Login with Keycloak"
+      # button entirely (see lib/auth/authOptions.ts); password login is
+      # unaffected. UNTESTED end-to-end against a real Keycloak — see
+      # SECURITY.md before enabling this in a reachable environment.
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:-}
+      RC_SERVICE_ACCOUNT_USER: ${RC_SERVICE_ACCOUNT_USER:-}
+      RC_SERVICE_ACCOUNT_PASS: ${RC_SERVICE_ACCOUNT_PASS:-}
+      # Must match `rocketchat`'s own value above byte-for-byte.
+      CREATE_TOKENS_FOR_USERS_SECRET: ${CREATE_TOKENS_FOR_USERS_SECRET:-}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/login >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - rocketchat-internal
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
+  rocketchat-internal:
+    driver: bridge
+
+volumes:
+  rocketchat_mongo_data:

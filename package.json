@@ -1,0 +1,53 @@
+{
+  "name": "eprisi-chat-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "visual-diff": "node scripts/visual-diff.mjs"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
+    "@rocket.chat/core-typings": "^8.8.1",
+    "@rocket.chat/ddp-client": "^1.1.2",
+    "@rocket.chat/emitter": "^0.33.0",
+    "@rocket.chat/message-parser": "^0.32.0",
+    "@rocket.chat/rest-typings": "^8.8.1",
+    "@tanstack/react-query": "^5",
+    "@tanstack/react-virtual": "^3.14.13",
+    "class-variance-authority": "^0.7.1",
+    "cn": "^0.3.0",
+    "lucide-react": "^1.46.0",
+    "next": "^15",
+    "next-auth": "^4.24.15",
+    "radix-ui": "^1.6.7",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-hook-form": "^7.88.0",
+    "shadcn": "^4.21.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pngjs": "^6.0.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^15",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.13",
+    "typescript": "^5"
+  },
+  "packageManager": "yarn@4.18.0+sha512.fcb8716fe7cd0eece141ffc18b92193a9df9204c1ba83189c288835223fc0bbe64af473bab0d5e9927a7daeb5caf2bb07eb2787cc9338ca040ea125f2a1f2f7e"
+}

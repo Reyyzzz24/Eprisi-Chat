@@ -1,0 +1,26 @@
+node_modules/
+spike/.session.json
+*.log
+
+# GATE 6/7 visual-diff output — generated screenshots/reports, not source
+.visual/
+
+# Next.js
+.next/
+out/
+build/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# env
+.env
+.env.local
+
+# yarn berry: keep releases/patches/plugins committed, ignore local cache/state
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*

@@ -17,7 +17,14 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # Hardcoded rather than derived from `github.repository` — the GitHub
+  # repo is named "Eprisi-Chat" (no "-web" suffix), which previously
+  # produced ghcr.io/reyyzzz24/eprisi-chat, silently mismatching every
+  # reference to ghcr.io/reyyzzz24/eprisi-chat-web in docker-compose.yml,
+  # DEPLOY.md, and README.md. Found by trying to actually pull the image
+  # Dokploy was failing on and getting a different "does not exist" error
+  # than the "denied" Dokploy reported, not by inspection alone.
+  IMAGE_NAME: reyyzzz24/eprisi-chat-web
 
 jobs:
   build-and-push:
@@ -26,7 +33,14 @@ jobs:
       contents: read
       packages: write
     steps:
+      # On a tag push, the default ref is already the tag — nothing special
+      # needed. On workflow_dispatch, the default ref is whatever branch was
+      # selected in the UI, NOT the `tag` input text box; without this
+      # explicit `ref`, a manual dispatch would silently build the wrong
+      # commit while still labeling the image with the requested tag.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - uses: docker/setup-qemu-action@v3
 
@@ -42,6 +56,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=match,pattern=v(.*),group=1,value=${{ github.event_name == 'workflow_dispatch' && inputs.tag || '' }}
+            type=ref,event=tag
 
       - uses: docker/build-push-action@v6
         with:

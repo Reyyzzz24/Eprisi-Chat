@@ -1,18 +1,39 @@
 # GATE 8 — Docker & Dokploy deployment notes
 
-## Building the image
+## How the image is built
 
-```bash
-docker buildx build --platform linux/amd64 \
-  --build-arg NEXT_PUBLIC_RC_WS_URL=wss://private-chat.eprisi.com/websocket \
-  --build-arg NEXT_PUBLIC_RC_PUBLIC_URL=https://private-chat.eprisi.com \
-  -t ghcr.io/reyyzzz24/eprisi-chat-web:<tag> \
-  --push .
-```
+`docker-compose.yml`'s `eprisi-chat-web` service uses `build: .` — Dokploy builds the image
+directly from this repo's own `Dockerfile` at deploy time, using whichever git remote Dokploy is
+configured to clone (GitLab, in this project's case). There is deliberately **no separate
+CI-built, registry-hosted image** (no GitHub Actions, no GHCR, no GitLab Container Registry):
+Dokploy already has the full source + Dockerfile from its own clone, so publishing a prebuilt image
+elsewhere and then pulling it back would just be an unnecessary cross-platform dependency — this
+project tried exactly that with GHCR first and hit a real, avoidable debugging detour (see "History"
+below) before switching to this simpler approach.
 
-**The two `--build-arg` values above are not optional and not just documentation** — see the
-"NEXT_PUBLIC_* are build-time, not runtime" finding below. Get them wrong and the image has to be
-rebuilt, not just restarted.
+The build args (`NEXT_PUBLIC_RC_WS_URL`, `NEXT_PUBLIC_RC_PUBLIC_URL`) are set directly in
+`docker-compose.yml`'s `build.args` block, not passed on the command line — see the "NEXT_PUBLIC_*
+are build-time, not runtime" finding below for why getting these wrong means a rebuild, not just a
+restart.
+
+**Trade-off worth knowing**: every `docker compose up -d --build` deploy now takes ~1-2 minutes for
+the wrapper's own build step (unavoidable — it's compiling Next.js), and there's no separate
+versioned image artifact to roll back to — rolling back means checking out a different git commit/tag and rebuilding, not swapping an image tag. For a single-VPS Dokploy setup this is a fine
+trade for not maintaining a separate registry; reconsider only if this were deployed to multiple
+hosts where rebuilding on each one would be wasteful.
+
+### History: why this isn't a GHCR-hosted image
+
+An earlier pass built and pushed to `ghcr.io/reyyzzz24/eprisi-chat-web` via a GitHub Actions
+workflow, matching WRAPPER_PROMPT.md's original example. This turned out to be the wrong call once
+Dokploy was actually configured to deploy from **GitLab**, not GitHub — the compose file's source
+of truth and the image's registry ended up on two unrelated platforms for no real reason, and it
+directly caused a real incident: the workflow derived the image name from `github.repository`
+("Eprisi-Chat", no "-web" suffix), silently publishing to `ghcr.io/reyyzzz24/eprisi-chat` while
+`docker-compose.yml` requested `eprisi-chat-web` — Dokploy's resulting "denied" error looked like a
+registry-permissions problem and cost real debugging time before the actual cause (a wrong name,
+not a visibility setting) was found by trying the pull directly outside Dokploy. Building in place
+from the already-cloned repo removes this whole class of problem.
 
 ## Dokploy setup
 
@@ -110,11 +131,14 @@ verified via a real headless browser hitting the wrapper's exposed port:
   that result stands; only re-confirming it in *this specific fresh container* was blocked by an
   unrelated local network limitation.
 
-This whole container stack (build → compose up → login → navigate → history load) was re-run a
-second time after the initial GATE 8 pass (same result on message-sending, more precise root cause
-found the second time) — everything except sending was reconfirmed working identically.
+This whole container stack (build → compose up → login → navigate → history load) was re-run
+twice more after the initial GATE 8 pass — once after the GHCR incident above (same result on
+message-sending, more precise root cause found the second time), and once again after switching
+`eprisi-chat-web` from a pulled `image:` to `build: .` (this time via `docker compose build`, not a
+manually-tagged `docker build`, to exercise the exact command Dokploy itself runs) — everything
+except message-sending was reconfirmed working identically all three times.
 
 **Recommendation**: re-run this same container test from a machine with accurate wall-clock time
 and working access to `cloud.rocket.chat`/`collector.rocket.chat` (the actual Dokploy VPS is the
-natural place) before considering GATE 8 fully
-closed on messaging specifically — everything else above is already confirmed.
+natural place) before considering GATE 8 fully closed on messaging specifically — everything else
+above is already confirmed, three times over.

@@ -77,8 +77,25 @@ services:
       - dokploy-network
 
   eprisi-chat-web:
-    image: ghcr.io/reyyzzz24/eprisi-chat-web:${EPRISI_CHAT_WEB_TAG:-latest}
-    platform: linux/amd64
+    # Built directly from this repo's own Dockerfile at deploy time —
+    # deliberately NOT a prebuilt `image:` from a registry. Dokploy already
+    # clones this exact repo (source + Dockerfile together) to run this
+    # compose file, so pulling a separately-published image added a real
+    # cross-platform dependency (GitHub Actions + GHCR) for no benefit here.
+    # See git history for the GHCR approach this replaced, if a "build
+    # once, deploy prebuilt image" pattern is wanted again later (e.g. a
+    # multi-VPS setup where rebuilding on every host is wasteful).
+    build:
+      context: .
+      args:
+        # NEXT_PUBLIC_* are inlined into the browser bundle at BUILD time,
+        # not read at container start — see the Dockerfile's own ARG/ENV
+        # comments. Must match the `environment:` values below (Next also
+        # reads NEXT_PUBLIC_RC_PUBLIC_URL server-side at runtime for
+        # generated links), or the browser and the server disagree about
+        # RC's public address.
+        NEXT_PUBLIC_RC_WS_URL: "wss://private-chat.eprisi.com/websocket"
+        NEXT_PUBLIC_RC_PUBLIC_URL: "https://private-chat.eprisi.com"
     restart: unless-stopped
     depends_on:
       rocketchat:
@@ -87,9 +104,6 @@ services:
       # Server-side only, internal docker network address — see
       # lib/rc/config.ts. Never exposed to the browser.
       RC_INTERNAL_URL: "http://rocketchat:3000"
-      # Client-side (NEXT_PUBLIC_*) — baked in at BUILD time (see the
-      # Dockerfile's ARG/ENV for these two), listed here too since Next
-      # also reads them at runtime for server-rendered pages.
       NEXT_PUBLIC_RC_WS_URL: "wss://private-chat.eprisi.com/websocket"
       NEXT_PUBLIC_RC_PUBLIC_URL: "https://private-chat.eprisi.com"
       SESSION_SECRET: ${SESSION_SECRET}

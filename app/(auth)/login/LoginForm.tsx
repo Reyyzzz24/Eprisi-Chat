@@ -101,9 +101,9 @@ export default function LoginForm({
           src="/images/watermark-gear.png"
           alt=""
           aria-hidden
-          width={422}
-          height={422}
-          className="pointer-events-none absolute -bottom-24 -left-24 -z-10 opacity-60"
+          width={260}
+          height={260}
+          className="pointer-events-none absolute -bottom-14 -left-14 -z-10 opacity-60"
         />
         <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-start gap-12 pt-4 md:gap-20 md:pt-12">
           <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ export default function LoginForm({
                   aria-invalid={Boolean(errors.user)}
                   aria-describedby={errors.user ? "user-error" : undefined}
                   disabled={isSubmitting}
-                  className="h-10 border-transparent bg-secondary"
+                  className="h-10 border-slate-300 bg-secondary"
                   {...register("user")}
                 />
                 {errors.user && (
@@ -165,7 +165,7 @@ export default function LoginForm({
                     aria-invalid={Boolean(errors.password)}
                     aria-describedby={errors.password ? "password-error" : undefined}
                     disabled={isSubmitting}
-                    className="h-10 border-transparent bg-secondary pr-9"
+                    className="h-10 border-slate-300 bg-secondary pr-9"
                     {...register("password")}
                   />
                   <button
@@ -208,7 +208,7 @@ export default function LoginForm({
                     value={twoFaCode}
                     onChange={(e) => setTwoFaCode(e.target.value)}
                     disabled={isSubmitting}
-                    className="h-10 border-transparent bg-secondary"
+                    className="h-10 border-slate-300 bg-secondary"
                   />
                 </div>
               )}
